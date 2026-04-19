@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasper | Approve Purchase Order</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar" style="position:static;padding:20px 40px;justify-content:center;">
+    <div class="logo"><span class="icon">⬢</span> KASPER</div>
+  </nav>
+
+  <div class="approve-container">
+    <h2 style="font-size:2rem;margin-bottom:5px;">Quote Approval</h2>
+    <p style="color:var(--text-muted);">Please review the details of your quote before confirming the order.</p>
+
+    <div class="quote-summary">
+      <p style="text-transform:uppercase;font-size:.85rem;color:var(--text-muted);">Job Reference</p>
+      <h3 id="mock-job-id" style="font-family:var(--font-heading);margin-bottom:15px;">Loading…</h3>
+
+      <p style="text-transform:uppercase;font-size:.85rem;color:var(--text-muted);margin-top:20px;">Route / Service</p>
+      <h4 id="mock-route" style="font-size:1.25rem;">Loading…</h4>
+
+      <div class="quote-price" id="mock-price">AED --</div>
+      <p style="font-size:.85rem;color:var(--text-muted);">By approving, you agree to Kasper's standard terms and conditions.</p>
+
+      <div style="margin-top:20px;padding:20px;background:rgba(29,158,117,.05);border:1px solid var(--accent-teal);border-radius:8px;">
+        <h4 style="color:var(--accent-teal);margin-bottom:10px;font-size:.95rem;text-transform:uppercase;">Order Contact</h4>
+        <p style="margin-bottom:5px;font-weight:600;" id="mock-contact-name">—</p>
+        <div style="display:flex;gap:20px;color:var(--text-muted);font-size:.9rem;">
+          <span id="mock-contact-phone">—</span>
+          <span id="mock-contact-email">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quote document -->
+    <div class="quote-document" style="background:white;color:#1A2B4A;border:1px solid #ddd;padding:30px;border-radius:8px;margin:20px 0;box-shadow:0 4px 15px rgba(0,0,0,.05);">
+      <div style="display:flex;justify-content:space-between;border-bottom:2px solid var(--accent-teal);padding-bottom:20px;margin-bottom:20px;">
+        <div>
+          <h2 style="color:#0D1B2A;margin:0;font-size:1.5rem;">QUOTATION</h2>
+          <p style="color:#7A8BA0;margin:5px 0 0;font-size:.9rem;">Kasper Technologies FZ-LLC</p>
+        </div>
+        <div style="text-align:right;font-size:.9rem;color:#7A8BA0;">
+          <p style="margin:0;"><strong style="color:#0D1B2A;">Date:</strong> <span id="mock-quote-date">—</span></p>
+          <p style="margin:0;"><strong style="color:#0D1B2A;">Valid Until:</strong> <span id="mock-quote-expiry">—</span></p>
+        </div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+        <thead>
+          <tr style="background:rgba(29,158,117,.05);color:#0D1B2A;">
+            <th style="padding:12px;text-align:left;border-bottom:1px solid #ddd;">Description</th>
+            <th style="padding:12px;text-align:right;border-bottom:1px solid #ddd;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:12px;border-bottom:1px solid #eee;color:#1A2B4A;" id="quote-table-desc">—</td>
+            <td style="padding:12px;text-align:right;border-bottom:1px solid #eee;color:#1A2B4A;" id="quote-table-price">—</td>
+          </tr>
+          <tr>
+            <td style="padding:12px;border-bottom:1px solid #eee;color:#7A8BA0;text-align:right;">VAT (5%)</td>
+            <td style="padding:12px;text-align:right;border-bottom:1px solid #eee;color:#7A8BA0;" id="quote-table-vat">—</td>
+          </tr>
+          <tr>
+            <td style="padding:12px;font-weight:bold;font-size:1.1rem;text-align:right;color:#0D1B2A;">Total</td>
+            <td style="padding:12px;font-weight:bold;font-size:1.1rem;text-align:right;color:var(--accent-teal);" id="quote-table-total">—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="font-size:.85rem;color:#7A8BA0;">
+        <p style="margin-bottom:5px;"><strong style="color:#0D1B2A;">Notes:</strong></p>
+        <ul style="margin:0;padding-left:20px;">
+          <li>Valid for 48 hours from quote date.</li>
+          <li>Subject to vehicle and equipment availability.</li>
+          <li>Standard terms and conditions apply.</li>
+        </ul>
+      </div>
+    </div>
+
+    <button id="btn-approve-quote" class="btn btn-primary w-100" style="font-size:1.25rem;padding:20px;" disabled>
+      Loading quote…
+    </button>
+    <div style="text-align:center;margin-top:20px;">
+      <a href="decline.html" style="color:var(--text-muted);text-decoration:underline;font-size:.9rem;">
+        Request a change or decline
+      </a>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/kasper-db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

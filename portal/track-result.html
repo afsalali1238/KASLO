@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasper | Live Tracking</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar" style="position:static;">
+    <div class="logo">
+      <a href="index.html" style="color:inherit;text-decoration:none;"><span class="icon">⬢</span> KASPER</a>
+    </div>
+    <div class="nav-links">
+      <a href="book.html?type=equipment">Equipment</a>
+      <a href="book.html?type=logistics">Freight Booking</a>
+    </div>
+  </nav>
+
+  <!-- Loading state -->
+  <div id="loading-UI" style="text-align:center;padding:80px 20px;">
+    <p style="color:var(--text-muted);font-size:1.1rem;">Loading order details…</p>
+  </div>
+
+  <!-- Result UI -->
+  <div class="track-container" id="tracking-result-UI" style="display:none;margin-top:60px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;flex-wrap:wrap;gap:16px;">
+      <div>
+        <h2 id="tr-job-id" style="font-size:2.5rem;color:var(--text-main);">—</h2>
+        <p id="tr-route" style="color:var(--accent-teal);font-size:1.1rem;">—</p>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button class="btn btn-secondary" id="refresh-btn" style="padding:10px 20px;font-size:.9rem;">↻ Refresh</button>
+        <button class="btn btn-secondary" onclick="window.location.href='track.html'">← Back to Search</button>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline">
+      <div class="timeline-step" id="ts-enq"><div class="step-dot"></div><div class="step-label">Enquiry</div></div>
+      <div class="timeline-step" id="ts-quo"><div class="step-dot"></div><div class="step-label">Quoted</div></div>
+      <div class="timeline-step" id="ts-con"><div class="step-dot"></div><div class="step-label">Confirmed</div></div>
+      <div class="timeline-step" id="ts-ass"><div class="step-dot"></div><div class="step-label">Assigned</div></div>
+      <div class="timeline-step" id="ts-int"><div class="step-dot"></div><div class="step-label">In Transit</div></div>
+      <div class="timeline-step" id="ts-del"><div class="step-dot"></div><div class="step-label">Delivered</div></div>
+      <div class="timeline-step" id="ts-epo"><div class="step-dot"></div><div class="step-label">ePOD Signed</div></div>
+      <div class="timeline-step" id="ts-inv"><div class="step-dot"></div><div class="step-label">Invoiced</div></div>
+    </div>
+
+    <!-- GPS -->
+    <div id="gps-module" style="display:none;margin-bottom:40px;">
+      <h3 style="margin-bottom:15px;">Live GPS Tracking</h3>
+      <div class="pdf-placeholder" style="background-image:url('assets/gps-map.png');background-size:cover;background-position:center;border:2px solid var(--accent-teal);"></div>
+    </div>
+
+    <!-- Details grid -->
+    <div class="job-details-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+      <div class="detail-card">
+        <h3 style="margin-bottom:20px;">Order Details</h3>
+        <ul class="docs-list" style="color:var(--text-muted);font-size:.95rem;">
+          <li><span>Service:</span>  <strong style="color:var(--text-main);" id="tr-service">—</strong></li>
+          <li><span>Route:</span>    <strong style="color:var(--text-main);" id="tr-route-detail">—</strong></li>
+          <li><span>Date:</span>     <strong style="color:var(--text-main);" id="tr-date">—</strong></li>
+          <li><span>Cargo:</span>    <strong style="color:var(--text-main);" id="tr-cargo">—</strong></li>
+          <li><span>Rate:</span>     <strong style="color:var(--text-main);" id="tr-rate">—</strong></li>
+          <li><span>Status:</span>   <strong style="color:var(--accent-teal);" id="tr-status">—</strong></li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3 style="margin-bottom:20px;">Contact Details</h3>
+        <ul class="docs-list" style="color:var(--text-muted);font-size:.95rem;">
+          <li><span>Driver:</span>  <strong style="color:var(--text-main);" id="tr-driver">Pending assignment</strong></li>
+          <li><span>Plate:</span>   <strong style="color:var(--text-main);" id="tr-plate">—</strong></li>
+          <li><span>Phone:</span>   <strong style="color:var(--text-main);" id="tr-driver-phone">—</strong></li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3 style="margin-bottom:20px;">Documents</h3>
+        <ul class="docs-list">
+          <li><span>Purchase Order</span> <button class="btn btn-sm btn-outline">Download</button></li>
+          <li><span style="color:var(--text-muted);">Invoice</span> <button class="btn btn-sm btn-outline" disabled style="opacity:.5;">Pending</button></li>
+          <li>
+            <span id="dl-epod-text" style="color:var(--text-muted);">Delivery Note</span>
+            <button id="dl-epod-btn" class="btn btn-sm btn-outline" disabled style="opacity:.5;">Pending</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ePOD module (shown only when status = delivered) -->
+    <div id="epod-module" class="epod-section" style="display:none;">
+      <h2>Confirm Delivery Receipt</h2>
+      <p style="color:var(--text-muted);margin-bottom:20px;">Your cargo has arrived. Please sign off on the delivery.</p>
+
+      <div style="margin-bottom:15px;">
+        <label style="color:var(--text-muted);font-size:.85rem;display:block;margin-bottom:5px;">Payment Method</label>
+        <select id="epod-payment" class="search-input" style="width:100%;border:1px solid var(--border-color);background:var(--bg-surface);">
+          <option>Company Credit / LPO</option>
+          <option>Cash on Delivery</option>
+          <option>Credit Card (Send Link)</option>
+        </select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
+        <div>
+          <label style="color:var(--text-muted);font-size:.85rem;display:block;margin-bottom:5px;">Receiver Name <span style="color:var(--alert-amber)">*</span></label>
+          <input type="text" id="epod-name" class="search-input" style="width:100%;border:1px solid var(--border-color);background:var(--bg-surface);" placeholder="Full Name">
+        </div>
+        <div>
+          <label style="color:var(--text-muted);font-size:.85rem;display:block;margin-bottom:5px;">Phone Number</label>
+          <input type="text" id="epod-phone" class="search-input" style="width:100%;border:1px solid var(--border-color);background:var(--bg-surface);" placeholder="05x xxx xxxx">
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="color:var(--text-muted);font-size:.85rem;display:block;margin-bottom:5px;">Designation</label>
+        <input type="text" id="epod-designation" class="search-input" style="width:100%;border:1px solid var(--border-color);background:var(--bg-surface);" placeholder="e.g. Site Manager">
+      </div>
+
+      <div style="display:flex;gap:20px;align-items:flex-end;">
+        <div style="flex:1;">
+          <label style="color:var(--text-muted);font-size:.85rem;display:block;margin-bottom:10px;">Recipient Signature</label>
+          <div class="canvas-wrapper">
+            <canvas id="signature-pad"></canvas>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="clear-sig" style="margin-bottom:20px;height:50px;">Clear</button>
+      </div>
+
+      <button class="btn btn-primary w-100" id="submit-epod" style="margin-top:30px;font-size:1.1rem;">
+        APPROVE DELIVERY & SIGN OFF
+      </button>
+    </div>
+  </div>
+
+  <!-- Error UI -->
+  <div id="error-UI" class="track-container text-center" style="display:none;margin-top:100px;">
+    <h2>Job Code Not Found</h2>
+    <p style="color:var(--text-muted);margin-bottom:30px;">Please check your reference number.</p>
+    <button class="btn btn-primary" onclick="window.location.href='track.html'">Try Again</button>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="js/kasper-db.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // Hide loading UI once app.js runs
+    document.getElementById('loading-UI').style.display = 'none';
+
+    // Refresh button
+    document.getElementById('refresh-btn')?.addEventListener('click', () => {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>
