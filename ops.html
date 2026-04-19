@@ -22,7 +22,7 @@ const SUPA_KEY  = 'sb_publishable_gUOvqITZjbThOGB6_ZBadg_I7mNT6kM';
 const EMAILJS_SVC  = 'YOUR_EMAILJS_SERVICE_ID';
 const EMAILJS_TPL  = 'YOUR_EMAILJS_TEMPLATE_ID';
 const EMAILJS_KEY  = 'YOUR_EMAILJS_PUBLIC_KEY';
-const SITE_URL  = 'https://YOUR_DOMAIN/portal'; // e.g. https://kasper.ae/portal
+const SITE_URL  = window.location.origin; // Auto-detected from current domain
 
 // ── Supabase helpers ──────────────────────────────────────────────
 const sb = {
@@ -34,30 +34,30 @@ const sb = {
 
 // ── EmailJS helper ────────────────────────────────────────────────
 async function sendConfirmationEmail(job) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
-    script.onload = () => {
-      emailjs.init(EMAILJS_KEY);
-      // Pass the tracking URL to the email template (users can update their EmailJS template text to reflect order confirmed rather than quote)
-      const trackUrl = `${SITE_URL}/track-result.html?job_id=${encodeURIComponent(job.job_code)}`;
-      const svc = job.service_type === 'equipment'
-        ? `Equipment: ${job.equipment_type||''} (${job.duration||''})`
-        : `Freight: ${job.origin||''} → ${job.destination||''}`;
-      emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
-        to_name:    job.client_name || 'Valued Client',
-        to_email:   job.client_email,
-        job_code:   job.job_code,
-        service:    svc,
-        price:      `AED ${Number(job.quoted_price).toLocaleString()}`,
-        notes:      job.quote_notes || '',
-        approve_url: trackUrl,  // Reusing the same template variable so their EmailJS template doesn't break
-        valid_hours: 'Confirmed',
-      }).then(resolve).catch(reject);
-    };
-    script.onerror = reject;
-    if (!window.emailjs) document.head.appendChild(script);
-    else { emailjs.init(EMAILJS_KEY); resolve(); }
+  // Ensure EmailJS is loaded
+  if (!window.emailjs) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  emailjs.init(EMAILJS_KEY);
+  const approveUrl = `${SITE_URL}/approve.html?job_id=${encodeURIComponent(job.job_code)}`;
+  const svc = job.service_type === 'equipment'
+    ? `Equipment: ${job.equipment_type||''} (${job.duration||''})`
+    : `Freight: ${job.origin||''} → ${job.destination||''}`;
+  return emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+    to_name:    job.client_name || 'Valued Client',
+    to_email:   job.client_email,
+    job_code:   job.job_code,
+    service:    svc,
+    price:      `AED ${Number(job.quoted_price).toLocaleString()}`,
+    notes:      job.quote_notes || '',
+    approve_url: approveUrl,
+    valid_hours: '48',
   });
 }
 
@@ -289,7 +289,9 @@ function renderLogin(){
     card.append(ico,title,desc);d.append(card);
   });
   const foot=txt('div','Demo — tap a role to continue');foot.style.cssText=`text-align:center;font-size:12px;color:${C.muted};margin-top:16px`;
-  d.append(foot);return d;
+  const homeLink=el('a',{href:'index.html',style:{display:'block',textAlign:'center',color:C.teal,fontSize:'13px',marginTop:'12px',textDecoration:'none'}});
+  homeLink.textContent='← Back to Homepage';
+  d.append(foot,homeLink);return d;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -979,6 +981,8 @@ function render(){
 render();
 if(schedIv)clearInterval(schedIv);
 schedIv=setInterval(checkSchedule,60000);
+// Auto-refresh jobs every 15s when in ops view
+setInterval(()=>{ if(state.view==='ops' && !state.sub) loadJobs(); }, 15000);
 </script>
 </body>
 </html>

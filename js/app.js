@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       try {
         await KasperDB.updateJob(job.job_code, {
-          status: 'invoiced',
+          status: 'epod_pending',
           epod_client_done: true,
           epod_timestamp: new Date().toISOString(),
           epod_notes: `Received by: ${name}${phone ? ' (' + phone + ')' : ''}. Payment: ${method}.`,

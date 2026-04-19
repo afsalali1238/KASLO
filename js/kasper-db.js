@@ -11,12 +11,8 @@ const KASPER_CONFIG = {
   emailjsServiceId:   'YOUR_EMAILJS_SERVICE_ID',    // e.g. service_xxxxxx
   emailjsTemplateId:  'YOUR_EMAILJS_TEMPLATE_ID',   // e.g. template_xxxxxx
   emailjsPublicKey:   'YOUR_EMAILJS_PUBLIC_KEY',    // e.g. xxxxxxxxxxxxxx
-  // Auto-detected site URL for approve links. Override if needed:
-  siteUrl: (()=>{
-    const p = window.location.pathname;
-    const base = window.location.origin + p.substring(0, p.lastIndexOf('/'));
-    return base;
-  })(),
+  // Auto-detected site URL for links
+  siteUrl: window.location.origin,
 };
 
 // ── Supabase REST helpers ─────────────────────────────────────────
