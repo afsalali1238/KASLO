@@ -37,43 +37,43 @@
     </div>
 
     <!-- Quote document -->
-    <div class="quote-document" style="background:white;color:#1A2B4A;border:1px solid #ddd;padding:30px;border-radius:8px;margin:20px 0;box-shadow:0 4px 15px rgba(0,0,0,.05);">
+    <div class="quote-document" style="background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-color);padding:30px;border-radius:8px;margin:20px 0;box-shadow:0 4px 15px rgba(0,0,0,.3);">
       <div style="display:flex;justify-content:space-between;border-bottom:2px solid var(--accent-teal);padding-bottom:20px;margin-bottom:20px;">
         <div>
-          <h2 style="color:#0D1B2A;margin:0;font-size:1.5rem;">QUOTATION</h2>
-          <p style="color:#7A8BA0;margin:5px 0 0;font-size:.9rem;">Kasper Technologies FZ-LLC</p>
+          <h2 style="color:var(--text-main);margin:0;font-size:1.5rem;">QUOTATION</h2>
+          <p style="color:var(--text-muted);margin:5px 0 0;font-size:.9rem;">Kasper Technologies FZ-LLC</p>
         </div>
-        <div style="text-align:right;font-size:.9rem;color:#7A8BA0;">
-          <p style="margin:0;"><strong style="color:#0D1B2A;">Date:</strong> <span id="mock-quote-date">—</span></p>
-          <p style="margin:0;"><strong style="color:#0D1B2A;">Valid Until:</strong> <span id="mock-quote-expiry">—</span></p>
+        <div style="text-align:right;font-size:.9rem;color:var(--text-muted);">
+          <p style="margin:0;"><strong style="color:var(--text-main);">Date:</strong> <span id="mock-quote-date">—</span></p>
+          <p style="margin:0;"><strong style="color:var(--text-main);">Valid Until:</strong> <span id="mock-quote-expiry">—</span></p>
         </div>
       </div>
 
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
         <thead>
-          <tr style="background:rgba(29,158,117,.05);color:#0D1B2A;">
-            <th style="padding:12px;text-align:left;border-bottom:1px solid #ddd;">Description</th>
-            <th style="padding:12px;text-align:right;border-bottom:1px solid #ddd;">Amount</th>
+          <tr style="background:rgba(29,158,117,.1);color:var(--text-main);">
+            <th style="padding:12px;text-align:left;border-bottom:1px solid var(--border-color);">Description</th>
+            <th style="padding:12px;text-align:right;border-bottom:1px solid var(--border-color);">Amount</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="padding:12px;border-bottom:1px solid #eee;color:#1A2B4A;" id="quote-table-desc">—</td>
-            <td style="padding:12px;text-align:right;border-bottom:1px solid #eee;color:#1A2B4A;" id="quote-table-price">—</td>
+            <td style="padding:12px;border-bottom:1px solid var(--border-color);color:var(--text-main);" id="quote-table-desc">—</td>
+            <td style="padding:12px;text-align:right;border-bottom:1px solid var(--border-color);color:var(--text-main);" id="quote-table-price">—</td>
           </tr>
           <tr>
-            <td style="padding:12px;border-bottom:1px solid #eee;color:#7A8BA0;text-align:right;">VAT (5%)</td>
-            <td style="padding:12px;text-align:right;border-bottom:1px solid #eee;color:#7A8BA0;" id="quote-table-vat">—</td>
+            <td style="padding:12px;border-bottom:1px solid var(--border-color);color:var(--text-muted);text-align:right;">VAT (5%)</td>
+            <td style="padding:12px;text-align:right;border-bottom:1px solid var(--border-color);color:var(--text-muted);" id="quote-table-vat">—</td>
           </tr>
           <tr>
-            <td style="padding:12px;font-weight:bold;font-size:1.1rem;text-align:right;color:#0D1B2A;">Total</td>
+            <td style="padding:12px;font-weight:bold;font-size:1.1rem;text-align:right;color:var(--text-main);">Total</td>
             <td style="padding:12px;font-weight:bold;font-size:1.1rem;text-align:right;color:var(--accent-teal);" id="quote-table-total">—</td>
           </tr>
         </tbody>
       </table>
 
-      <div style="font-size:.85rem;color:#7A8BA0;">
-        <p style="margin-bottom:5px;"><strong style="color:#0D1B2A;">Notes:</strong></p>
+      <div style="font-size:.85rem;color:var(--text-muted);">
+        <p style="margin-bottom:5px;"><strong style="color:var(--text-main);">Notes:</strong></p>
         <ul style="margin:0;padding-left:20px;">
           <li>Valid for 48 hours from quote date.</li>
           <li>Subject to vehicle and equipment availability.</li>

@@ -654,47 +654,83 @@ function renderOpsJobDetail(){
   // ── Action buttons ────────────────────────────────────────────
   const acts=el('div',{style:{display:'flex',flexDirection:'column',gap:'10px',marginTop:'4px'}});
 
-  // 1-CLICK APPROVE (Bypassing external client quote)
-  if(j.status==='enquiry'||j.status==='quoted'){
-    const apc = el('div',{class:'card',style:{borderColor:C.teal,background:C.tealDim,marginTop:'10px'}});
-    apc.append(txt('div','APPROVE & GENERATE PO','lbl'));
+  // ── SEND QUOTE TO CLIENT (Primary workflow) ────────────────────
+  if(j.status==='enquiry'){
+    const qpc = el('div',{class:'card',style:{borderColor:C.teal,background:C.tealDim,marginTop:'10px'}});
+    qpc.append(txt('div','SEND QUOTE TO CLIENT','lbl'));
     
-    const inpRate = el('input',{type:'number',placeholder:'Final Price (AED)',style:{marginBottom:'10px',marginTop:'6px'}});
+    const inpRate = el('input',{type:'number',placeholder:'Price (AED)',style:{marginBottom:'10px',marginTop:'6px'}});
     if(j.quoted_price) inpRate.value = j.quoted_price;
     
-    const inpNote = el('input',{type:'text',placeholder:'Internal Notes (optional)',style:{marginBottom:'10px'}});
+    const inpNote = el('input',{type:'text',placeholder:'Notes for client (optional)',style:{marginBottom:'10px'}});
     if(j.quote_notes) inpNote.value = j.quote_notes;
     
     const hasEmail=!!j.client_email;
-    const emailInfo=txt('div',hasEmail?`✓ Will email Confirmation PDF to: ${j.client_email}`:`⚠ No email on file — share tracking link manually.`);
+    const emailInfo=txt('div',hasEmail?`✓ Quote will be emailed to: ${j.client_email}`:`⚠ No email — share the approval link manually after sending.`);
     emailInfo.style.cssText=`font-size:11.5px;color:${hasEmail?C.teal:C.amber};margin-bottom:14px;`;
     
     let sending=false;
-    const ab = btn('✓ Approve & Generate PO ➔',C.teal,async()=>{
+    const sqb = btn('📩 Send Quote to Client',C.teal,async()=>{
       if(sending)return;
       const price=parseFloat(inpRate.value);
       if(!price||price<=0){inpRate.style.borderColor=C.red;return;}
-      sending=true;ab.textContent='Approving…';ab.disabled=true;
-      
-      const updatedJob={
-        ...j, quoted_price:price, quote_notes:inpNote.value||null,
-        status:'confirmed', quote_sent_at:new Date().toISOString()
-      };
+      sending=true;sqb.textContent='Sending…';sqb.disabled=true;
       
       await sb.patch(`jobs?job_code=eq.${encodeURIComponent(j.job_code)}`, {
         quoted_price:price, quote_notes:inpNote.value||null,
-        status:'confirmed', quote_sent_at:new Date().toISOString()
+        status:'quoted', quote_sent_at:new Date().toISOString()
       });
 
       if(hasEmail){
-        try{ await sendConfirmationEmail(updatedJob); }
+        try{ 
+          const updatedJob={...j, quoted_price:price, quote_notes:inpNote.value||null, status:'quoted'};
+          await sendConfirmationEmail(updatedJob); 
+        }
         catch(e){ console.warn('Email failed',e); }
       }
       state.sub=null; await loadJobs();
     });
     
-    apc.append(inpRate, inpNote, emailInfo, ab);
-    d.append(apc);
+    qpc.append(inpRate, inpNote, emailInfo, sqb);
+    d.append(qpc);
+  }
+
+  // Show the approval link for quoted jobs so ops can share manually
+  if(j.status==='quoted'){
+    const wc = el('div',{class:'card card-amber',style:{marginTop:'10px'}});
+    wc.append(txt('div','WAITING FOR CLIENT APPROVAL','lbl'));
+    const wt=txt('div','The client has been sent a quote. Waiting for them to approve.');
+    wt.style.cssText=`font-size:13px;color:${C.amber};margin:8px 0 12px`;
+    const approveUrl=`${window.location.origin}/approve.html?job_id=${encodeURIComponent(j.job_code)}`;
+    const linkBox=el('input',{type:'text',value:approveUrl,readonly:true,style:{fontSize:'12px',marginBottom:'10px',cursor:'text'}});
+    linkBox.onclick=()=>{linkBox.select();navigator.clipboard?.writeText(approveUrl);};
+    const copyHint=txt('div','Tap to copy the approval link');
+    copyHint.style.cssText=`font-size:11px;color:${C.muted};margin-bottom:12px`;
+    wc.append(wt,linkBox,copyHint);
+    d.append(wc);
+  }
+
+  // ── FORCE APPROVE (Override — small secondary button) ──────────
+  if(j.status==='enquiry'||j.status==='quoted'){
+    const sep=el('div');sep.style.cssText=`height:1px;background:${C.border};margin:16px 0 10px`;
+    d.append(sep);
+    
+    const faLabel=txt('div','⚡ Internal Override');
+    faLabel.style.cssText=`font-size:11px;color:${C.muted};text-align:center;margin-bottom:8px`;
+    
+    const fab = outlineBtn('Force Approve (Skip Client)',C.muted,async()=>{
+      const price = j.quoted_price || parseFloat(prompt('Enter price (AED):'));
+      if(!price||price<=0) return;
+      fab.textContent='Approving…';fab.disabled=true;
+      await sb.patch(`jobs?job_code=eq.${encodeURIComponent(j.job_code)}`, {
+        quoted_price:price, status:'confirmed', 
+        approval_timestamp:new Date().toISOString(),
+        quote_sent_at:new Date().toISOString()
+      });
+      state.sub=null; await loadJobs();
+    });
+    fab.style.cssText+=`;font-size:12px;padding:8px 16px;width:100%;opacity:.7`;
+    d.append(faLabel,fab);
   }
 
   // Assign driver (confirmed)

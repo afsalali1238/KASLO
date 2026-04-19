@@ -510,12 +510,29 @@ footer {
 .footer-content { display: flex; justify-content: space-between; align-items: center;}
 .footer-col p { color: var(--text-muted); font-size: 0.85rem; margin-top: 5px;}
 
+/* Nav CTA (Staff Login button) */
+.nav-cta {
+    background: var(--accent-teal);
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.nav-cta:hover {
+    background: var(--accent-teal-hover);
+    box-shadow: 0 0 15px rgba(29, 158, 117, 0.4);
+}
+
 /* Media Queries for responsiveness */
 @media(max-width: 1024px) {
     .equipment-grid { grid-template-columns: repeat(2, 1fr); }
     .split-section, .tech-grid { grid-template-columns: 1fr; }
     .hero-title { font-size: 4rem; }
-}
 }
 @media(max-width: 768px) {
     .nav-links { display: none; }
@@ -524,6 +541,10 @@ footer {
     .equipment-grid { grid-template-columns: 1fr; }
     .hero-title { font-size: 3rem; }
     .hero-buttons { flex-direction: column; }
+    .approve-container { margin: 80px 16px; padding: 24px; }
+    .job-details-grid { grid-template-columns: 1fr !important; }
+    .timeline { overflow-x: auto; }
+    footer { padding: 30px 20px; }
 }
 
 /* Toast Notification System */

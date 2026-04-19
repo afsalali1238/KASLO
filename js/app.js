@@ -186,9 +186,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      if (job.status !== 'quoted' || !job.quoted_price) {
+      if (!job.quoted_price) {
         approveBtn.disabled = true;
-        approveBtn.textContent = 'Quote not yet sent — ops will contact you shortly';
+        approveBtn.textContent = 'Quote not yet sent — our team will contact you shortly';
         return;
       }
 
