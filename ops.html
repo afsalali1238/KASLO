@@ -306,56 +306,61 @@ function renderBottomNav(tabs,active,onClick){
 // LOGIN
 // ════════════════════════════════════════════════════════════════
 function renderLogin(){
-  const d=el('div',{style:{background:C.bg,padding:'60px 24px',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center'}});
+  const d=el('div',{style:{background:C.bg,padding:'40px 24px',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center'}});
   
   const logo=txt('div','⬢ KASPER');logo.style.cssText=`font-size:36px;font-weight:800;color:${C.teal};letter-spacing:3px;text-align:center;margin-bottom:6px`;
-  const sub=txt('div','Digital Iron OS');sub.style.cssText=`font-size:14px;color:${C.muted};text-align:center;margin-bottom:48px`;
-  
-  const cardBox=el('div',{class:'card',style:{padding:'30px 24px',width:'100%',maxWidth:'400px'}});
-  const title=txt('h2','Staff & Vendor Login');title.style.cssText=`font-size:22px;margin-bottom:24px;text-align:center`;
-  
-  const form=el('form');
-  form.onsubmit = (e) => {
-    e.preventDefault();
-    const sel = roleSelect.value;
-    if(sel === 'ops'){
-      state.view = 'ops';
-      state.vendor_id = '11111111-1111-1111-1111-111111111111'; // Kasper Internal
-    } else if(sel === 'driver'){
-      state.view = 'driver';
-      state.vendor_id = '11111111-1111-1111-1111-111111111111'; // Kasper Driver
-    } else if(sel === 'saas'){
-      state.view = 'ops'; // Vendors use the same ops dashboard but see only their jobs
-      state.vendor_id = '22222222-2222-2222-2222-222222222222'; // Al Hamd Demo Vendor
-    }
-    state.sub = null;
-    loadJobs();
-    checkSchedule();
-    render();
-  };
+  const sub=txt('div','Digital Iron OS');sub.style.cssText=`font-size:14px;color:${C.muted};text-align:center;margin-bottom:30px`;
+  d.append(logo, sub);
 
-  const vendorLabel=txt('label','Company / Workspace');vendorLabel.style.cssText=`display:block;margin-bottom:8px;font-size:13px;color:${C.muted}`;
-  const vendorSelect=el('select',{style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'20px',fontSize:'16px',appearance:'none'}});
-  const optV1=el('option',{value:'11111111-1111-1111-1111-111111111111'}); optV1.textContent='Kasper Logistics (Dubai)';
-  const optV2=el('option',{value:'22222222-2222-2222-2222-222222222222'}); optV2.textContent='Al Hamd Cargo (Sharjah)';
-  vendorSelect.append(optV1, optV2);
+  const container = el('div', {style:{display:'flex',flexDirection:'column',gap:'20px',width:'100%',maxWidth:'400px'}});
+
+  // --- CARD 1: Kasper Staff ---
+  const card1=el('div',{class:'card',style:{padding:'30px 24px'}});
+  const title1=txt('h2','Kasper Staff Access');title1.style.cssText=`font-size:20px;margin-bottom:20px;text-align:center;color:${C.text}`;
+  const f1=el('form');
+  f1.onsubmit = (e) => {
+    e.preventDefault();
+    state.vendor_id = '11111111-1111-1111-1111-111111111111';
+    state.view = roleSelect1.value;
+    state.sub = null; loadJobs(); checkSchedule(); render();
+  };
+  const id1=el('input',{type:'text',placeholder:'Staff ID or Email',value:'ops@kasper.ae',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'12px'}});
+  const pw1=el('input',{type:'password',placeholder:'Password',value:'12345',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'12px'}});
+  const roleSelect1=el('select',{style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'20px',appearance:'none'}});
+  roleSelect1.append(el('option',{value:'ops',textContent:'Operations Manager'}), el('option',{value:'driver',textContent:'Fleet Driver App'}));
+  roleSelect1.children[0].textContent = 'Operations Manager';
+  roleSelect1.children[1].textContent = 'Fleet Driver App';
+  const btn1=el('button',{type:'submit',style:{width:'100%',padding:'14px',background:C.teal,color:'#fff',border:'none',borderRadius:'8px',fontWeight:'bold',cursor:'pointer'}});
+  btn1.textContent = 'Login';
+  f1.append(id1, pw1, roleSelect1, btn1);
+  card1.append(title1, f1);
+
+  // --- CARD 2: Vendor SaaS ---
+  const card2=el('div',{class:'card',style:{padding:'30px 24px',border:`1px solid ${C.amber}55`}});
+  const title2=txt('h2','Partner SaaS Portal');title2.style.cssText=`font-size:20px;margin-bottom:6px;text-align:center;color:${C.amber}`;
+  const sub2=txt('div','White-label Vendor UI');sub2.style.cssText='font-size:12px;color:'+C.muted+';text-align:center;margin-bottom:20px';
+  const f2=el('form');
+  f2.onsubmit = async (e) => {
+    e.preventDefault();
+    state.vendor_id = '22222222-2222-2222-2222-222222222222'; // Al Hamd Demo
+    state.view = 'ops';
+    state.sub = null; loadJobs(); checkSchedule(); render();
+  };
+  const id2=el('input',{type:'text',placeholder:'Partner Email',value:'admin@alhamd-transport.ae',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'12px'}});
+  const pw2=el('input',{type:'password',placeholder:'Password',value:'12345',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'20px'}});
+  const btn2=el('button',{type:'submit',style:{width:'100%',padding:'14px',background:C.amber,color:'#fff',border:'none',borderRadius:'8px',fontWeight:'bold',cursor:'pointer'}});
+  btn2.textContent = 'Login as Vendor';
+  f2.append(id2, pw2, btn2);
+  card2.append(title2, sub2, f2);
+
+  container.append(card1, card2);
   
-  const roleLabel=txt('label','Select Role');roleLabel.style.cssText=`display:block;margin-bottom:8px;font-size:13px;color:${C.muted}`;
-  const roleSelect=el('select',{style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'24px',fontSize:'16px',appearance:'none'}});
-  const optOps=el('option',{value:'ops'}); optOps.textContent='Operations Dashboard';
-  const optDriver=el('option',{value:'driver'}); optDriver.textContent='Driver Mobile App';
-  roleSelect.append(optOps, optDriver);
-  
-  const submitBtn=el('button',{type:'submit',style:{width:'100%',padding:'16px',background:C.teal,color:'#fff',border:'none',borderRadius:'8px',fontSize:'16px',fontWeight:'bold',cursor:'pointer'}});
-  submitBtn.textContent = 'Login to Portal';
-  
-  form.append(vendorLabel, vendorSelect, roleLabel, roleSelect, submitBtn);
-  cardBox.append(title, form);
+  const bypass=txt('div','Demo Mode: Click Login to bypass credentials');bypass.style.cssText=`font-size:12px;color:${C.muted};text-align:center;margin-top:20px`;
   
   const homeLink=el('a',{href:'index.html',style:{display:'block',textAlign:'center',color:C.teal,fontSize:'13px',marginTop:'30px',textDecoration:'none'}});
   homeLink.textContent='← Back to Homepage';
   
-  d.append(logo, sub, cardBox, homeLink);
+  d.append(container, bypass, homeLink);
   return d;
 }
 
