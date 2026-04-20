@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const jobCode = KasperDB.generateJobCode();
           const baseData = {
             job_code: jobCode,
+            vendor_id: '11111111-1111-1111-1111-111111111111', // Default to Kasper core
             status: 'enquiry',
             service_type: type,
             client_name:  clientName,
