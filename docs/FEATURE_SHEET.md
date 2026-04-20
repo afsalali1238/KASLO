@@ -22,13 +22,13 @@ Receive a professional quotation document via email. Review pricing, VAT breakdo
 - One-click approval → instant PO generation
 - Full audit trail of every quote and approval
 
-### 📡 Real-Time GPS Tracking
-Track your shipment from dispatch to delivery with a shareable live tracking link. No apps to install — works in any browser.
+### 📡 Real-Time GPS Tracking (Hardware-Free)
+Track your shipment from dispatch to delivery with a shareable live tracking link. No telematics hardware needed — our system uses the driver's native phone GPS and updates the client's map every 8 seconds.
 
-- Live GPS map embedded in your tracking page
+- Live Leaflet map embedded directly in your tracking page
 - Shareable link for your team and site managers
+- Driver app runs as a PWA (Progressive Web App) to keep GPS active
 - Automated status updates at every milestone
-- Driver location sharing on configurable schedule
 
 ### 📋 Electronic Proof of Delivery (ePOD)
 Eliminate paper delivery notes forever. Our dual sign-off system captures photographic evidence, signatures, and timestamps from both the driver and the receiver.

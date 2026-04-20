@@ -66,11 +66,11 @@ Kasper provides:
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Frontend | Vanilla HTML/CSS/JS | Zero-dependency, instant load |
+| Frontend | Vanilla HTML/CSS/JS + PWA | Zero-dependency, installable driver app |
 | Backend | Supabase (PostgreSQL) | Real-time database, REST API |
 | Email | EmailJS | Automated transactional emails |
 | Hosting | Vercel | CDN, auto-deploy from GitHub |
-| GPS | Traccar (planned) | Live fleet tracking |
+| GPS | Native Phone GPS + Leaflet | Hardware-free live tracking |
 | Repo | GitHub | Version control, CI/CD |
 
 ### 3.2 Page Architecture
@@ -81,8 +81,8 @@ Kasper provides:
 | `/book.html` | Booking form (equipment + freight) | Client |
 | `/approve.html` | Quote review + PO approval | Client |
 | `/track.html` | Job code search | Client |
-| `/track-result.html` | Live tracking + ePOD sign-off | Client |
-| `/ops.html` | Operations dashboard + Driver app | Staff |
+| `/track-result.html` | Live tracking map + ePOD sign-off | Client |
+| `/ops.html` | PWA: Ops dashboard + Driver app | Staff |
 | `/decline.html` | Quote decline confirmation | Client |
 | `/404.html` | Error page | All |
 
@@ -112,6 +112,9 @@ jobs (
   
   -- Assignment
   driver_name, driver_phone, vehicle_plate, traccar_link
+  
+  -- Live GPS Tracking (Native Phone)
+  driver_lat, driver_lng, driver_location_updated_at
   
   -- ePOD
   epod_driver_done, epod_client_done, epod_client_link
@@ -177,30 +180,34 @@ jobs (
 | Fleet roster | 5 vehicles with driver name, plate, type |
 | Click-to-select | Tap a vehicle row to assign |
 | Availability visualization | Green = available, Red = booked |
-| Traccar GPS link (optional) | Attach live tracking URL |
+| Traccar link (legacy) | Optional legacy hardware tracking URL |
 | Auto-status update | Sets status to `assigned` on confirm |
 
-### 4.4 Driver Mobile App
+### 4.4 Driver Mobile App (PWA)
 
 **Endpoint:** `/ops.html` → Driver role
 
 | Feature | Description |
 |---------|------------|
+| PWA Installable | "Add to Home Screen" prompts, standalone mode |
 | Job dashboard | View all assigned jobs, active trip, ePOD alerts |
 | Trip management | Start Trip → In Transit, Mark Delivered |
-| Location sharing | Scheduled auto-share (configurable window) |
-| Manual GPS toggle | Override scheduled sharing |
+| Location sharing | Scheduled auto-share (configurable window) or active trip |
+| Background GPS | PWA keeps GPS active by preventing screen sleep |
 | ePOD capture | Photo upload + signature pad + condition notes |
 | Client sign-off link | Generated automatically after driver ePOD |
 
 ### 4.5 Real-Time GPS Tracking
 
+**Architecture: Driver Phone ➔ Supabase ➔ Client Leaflet Map**
+
 | Feature | Description |
 |---------|------------|
-| Traccar integration | Embeds live GPS iframe in tracking page |
+| Hardware-Free | Uses driver's native phone GPS (navigator.geolocation) |
+| Active Pushing | Driver app pushes coords to database every 10 seconds |
+| Client Polling | Tracking page polls database every 8 seconds via Leaflet |
 | Fleet map (Ops) | UAE map with driver positions and status dots |
 | Share link | Client receives tracking URL in confirmation email |
-| Schedule-based | Drivers share location only during work hours |
 
 ### 4.6 Electronic Proof of Delivery (ePOD)
 

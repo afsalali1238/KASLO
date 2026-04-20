@@ -114,10 +114,11 @@ Before the demo, make sure you have:
 29. Tap the job → Show job detail
 30. Click **"▶ Start Trip"**
 
-> "The driver taps one button and the system starts GPS tracking and updates the status to 'In Transit'. The client can now see real-time location."
+> "The driver taps one button. The app, which is installed as a PWA on their phone, accesses their native GPS and starts beaming coordinates to our cloud every 10 seconds. We don't need any expensive Teltonika hardware."
 
 31. Show status moved to "In Transit"
-32. Click **"Mark as Delivered"**
+32. **Switch to Tab 1 (Client Tracking Page)** — Wait a few seconds and show the Leaflet map smoothly panning to the driver's live location. Points out the "12s ago" last updated timestamp, just like Keeta or Talabat.
+33. **Switch to Tab 2 (Driver)** — Click **"Mark as Delivered"**
 
 > "When the driver arrives, they mark the delivery complete."
 
