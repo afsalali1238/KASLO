@@ -210,6 +210,41 @@ async function updateJobStatus(jobCode, updates){
 
 function selJob(){ return state.jobs.find(j=>j.job_code===state.selId||j.id===state.selId); }
 
+// ── Force Next Step pipeline ──────────────────────────────────────
+const STATUS_PIPELINE=['enquiry','quoted','confirmed','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
+function nextStatus(current){
+  const idx=STATUS_PIPELINE.indexOf(current);
+  if(idx<0||idx>=STATUS_PIPELINE.length-1) return null;
+  return STATUS_PIPELINE[idx+1];
+}
+async function forceNextStep(job){
+  const ns=nextStatus(job.status);
+  if(!ns) return;
+  const extras={};
+  if(ns==='quoted') extras.quoted_price=job.quoted_price||2500;
+  if(ns==='confirmed'){ extras.approval_timestamp=new Date().toISOString(); extras.quoted_price=job.quoted_price||2500; }
+  if(ns==='assigned'){ extras.driver_name=extras.driver_name||'Ahmed Al Rashidi'; extras.vehicle_plate='Dubai A 12345'; extras.driver_phone='+971501234567'; }
+  await updateJobStatus(job.job_code,{status:ns,...extras});
+}
+
+// ── Reset Demo Data ───────────────────────────────────────────────
+async function resetDemoData(){
+  if(!confirm('Reset ALL jobs back to seed state? This cannot be undone.')) return;
+  try{
+    // Reset all jobs to enquiry status and clear assignment/quote fields
+    await sb.patch('jobs', {
+      status:'enquiry',
+      quoted_price:null, quote_notes:null, quote_sent_at:null,
+      approval_timestamp:null,
+      driver_name:null, vehicle_plate:null, driver_phone:null,
+      driver_lat:null, driver_lng:null, driver_location_updated_at:null,
+      epod_client_done:false, epod_notes:null
+    });
+    await loadJobs();
+    alert('✅ All jobs reset to Enquiry stage.');
+  }catch(e){ console.error('Reset failed',e); alert('Reset failed — see console.'); }
+}
+
 // ── Signature pad ─────────────────────────────────────────────────
 let sigDrawing=false,sigLast=null;
 function initSig(canvas){
@@ -285,8 +320,14 @@ function switchBtn(){
   b.textContent='Switch role';return b;
 }
 function refreshBtn(){
-  const b=el('button',{class:'switch-btn',onclick:()=>loadJobs()});
-  b.style.color=C.teal;b.textContent='↻ Refresh';return b;
+  const wrap=el('div',{style:{display:'flex',alignItems:'center',gap:'8px'}});
+  const rb=el('button',{class:'switch-btn',onclick:()=>loadJobs()});
+  rb.style.color=C.teal;rb.textContent='↻ Refresh';
+  const rst=el('button',{class:'switch-btn',onclick:()=>resetDemoData()});
+  rst.style.cssText=`color:${C.red};font-size:11px;opacity:.7`;
+  rst.textContent='🔄 Reset';
+  wrap.append(rb,rst);
+  return wrap;
 }
 
 // ── BOTTOM NAV ────────────────────────────────────────────────────
@@ -542,7 +583,22 @@ function renderDriverJobDetail(){
     const ep=btn('Complete ePOD Sign-off →',C.teal,()=>{state.selId=j.job_code;state.sub='epod';state.epodHasSig=false;render();});
     acts.append(ep);
   }
-  d.append(acts);return d;
+  d.append(acts);
+
+  // ── FORCE NEXT STEP (Driver) ──────────────────────────────────
+  const ns=nextStatus(j.status);
+  if(ns){
+    const sep2=el('div');sep2.style.cssText=`height:1px;background:${C.border};margin:16px 0 10px`;
+    const fnLabel=txt('div','⚡ Force Next Step');fnLabel.style.cssText=`font-size:11px;color:${C.amber};text-align:center;margin-bottom:8px`;
+    const fnb=outlineBtn(`Force → ${SL.label[ns]||ns}`,C.amber,async()=>{
+      fnb.textContent='Advancing…';fnb.disabled=true;
+      await forceNextStep(j);
+    });
+    fnb.style.cssText+=`;font-size:12px;padding:8px 16px;width:100%;opacity:.8`;
+    d.append(sep2,fnLabel,fnb);
+  }
+
+  return d;
 }
 
 function renderEPODCapture(){
@@ -826,7 +882,22 @@ function renderOpsJobDetail(){
     });acts.append(ib);
   }
 
-  d.append(acts);return d;
+  d.append(acts);
+
+  // ── FORCE NEXT STEP (Ops) ─────────────────────────────────────
+  const ns2=nextStatus(j.status);
+  if(ns2){
+    const sep3=el('div');sep3.style.cssText=`height:1px;background:${C.border};margin:16px 0 10px`;
+    const fnLabel2=txt('div','⚡ Demo Shortcut');fnLabel2.style.cssText=`font-size:11px;color:${C.muted};text-align:center;margin-bottom:8px`;
+    const fnb2=outlineBtn(`Force → ${SL.label[ns2]||ns2}`,C.amber,async()=>{
+      fnb2.textContent='Advancing…';fnb2.disabled=true;
+      await forceNextStep(j);
+    });
+    fnb2.style.cssText+=`;font-size:12px;padding:8px 16px;width:100%;opacity:.8`;
+    d.append(sep3,fnLabel2,fnb2);
+  }
+
+  return d;
 }
 
 
