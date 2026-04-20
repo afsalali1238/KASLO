@@ -336,18 +336,19 @@ function renderTopBar(title,onBack,right){
   if(right)bar.append(right);
   return bar;
 }
-function switchBtn(){
-  const b=el('button',{class:'switch-btn',onclick:()=>{state.view='login';state.sub=null;stopTracking();render();}});
-  b.textContent='Switch role';return b;
-}
-function refreshBtn(){
-  const wrap=el('div',{style:{display:'flex',alignItems:'center',gap:'8px'}});
-  const rb=el('button',{class:'switch-btn',onclick:()=>loadJobs()});
-  rb.style.color=C.teal;rb.textContent='↻ Refresh';
-  const rst=el('button',{class:'switch-btn',onclick:()=>resetDemoData()});
-  rst.style.cssText=`color:${C.red};font-size:11px;opacity:.7`;
-  rst.textContent='🔄 Reset';
-  wrap.append(rb,rst);
+function topbarRight(view){
+  const wrap=el('div',{style:{display:'flex',alignItems:'center',gap:'6px'}});
+  if(view==='ops'){
+    const rb=el('button',{class:'switch-btn',onclick:()=>loadJobs()});
+    rb.style.color=C.teal;rb.textContent='↻';
+    const rst=el('button',{class:'switch-btn',onclick:()=>resetDemoData()});
+    rst.style.cssText=`color:${C.amber};font-size:10px;opacity:.8`;
+    rst.textContent='🔄 RST';
+    wrap.append(rb,rst);
+  }
+  const x=el('button',{class:'switch-btn',onclick:()=>{state.view='login';state.sub=null;state.vendor_id=null;stopTracking();render();}});
+  x.style.color=C.red;x.textContent='⏏️';
+  wrap.append(x);
   return wrap;
 }
 
@@ -1091,7 +1092,7 @@ function render(){
   };
 
   const onBack=sub?()=>{state.sub=null;state.selId=null;render();}:null;
-  const rightEl=sub?null:(view==='ops'?refreshBtn():switchBtn());
+  const rightEl=sub?null:topbarRight(view);
 
   app.append(renderTopBar(getTitle(),onBack,rightEl));
 
