@@ -315,31 +315,27 @@ function renderLogin(){
   const form=el('form');
   form.onsubmit = (e) => {
     e.preventDefault();
-    const pin = pinInput.value;
-    if(pin === '1234') {
-        state.view='ops'; state.sub=null; loadJobs(); checkSchedule(); render();
-    } else if (pin === '0000') {
-        state.view='driver'; state.sub=null; loadJobs(); checkSchedule(); render();
-    } else {
-        errorMsg.style.display = 'block';
-    }
+    state.view = roleSelect.value;
+    state.sub = null;
+    loadJobs();
+    checkSchedule();
+    render();
   };
 
   const idLabel=txt('label','Mobile Number / Staff ID');idLabel.style.cssText=`display:block;margin-bottom:8px;font-size:13px;color:${C.muted}`;
   const idInput=el('input',{type:'text',placeholder:'e.g. 050 123 4567',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'20px',fontSize:'16px'}});
   
-  const pinLabel=txt('label','PIN Code');pinLabel.style.cssText=`display:block;margin-bottom:8px;font-size:13px;color:${C.muted}`;
-  const pinInput=el('input',{type:'password',placeholder:'Enter 4-digit PIN',required:true,style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'10px',fontSize:'16px'}});
-  
-  const errorMsg = txt('div','Invalid PIN. Try 1234 (Ops) or 0000 (Driver)'); errorMsg.style.cssText=`color:#FF6B6B;font-size:12px;margin-bottom:20px;text-align:center;display:none;`;
+  const roleLabel=txt('label','Select Role');roleLabel.style.cssText=`display:block;margin-bottom:8px;font-size:13px;color:${C.muted}`;
+  const roleSelect=el('select',{style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'24px',fontSize:'16px',appearance:'none'}});
+  const optOps=el('option',{value:'ops'}); optOps.textContent='Operations Dashboard';
+  const optDriver=el('option',{value:'driver'}); optDriver.textContent='Driver Mobile App';
+  roleSelect.append(optOps, optDriver);
   
   const submitBtn=el('button',{type:'submit',style:{width:'100%',padding:'16px',background:C.teal,color:'#fff',border:'none',borderRadius:'8px',fontSize:'16px',fontWeight:'bold',cursor:'pointer'}});
-  submitBtn.textContent = 'Login';
+  submitBtn.textContent = 'Login to Portal';
   
-  const hints = txt('div','Demo Access: PIN 1234 (Ops) | PIN 0000 (Driver)');hints.style.cssText=`margin-top:24px;font-size:12px;color:${C.muted};text-align:center;line-height:1.6`;
-
-  form.append(idLabel, idInput, pinLabel, pinInput, errorMsg, submitBtn);
-  cardBox.append(title, form, hints);
+  form.append(idLabel, idInput, roleLabel, roleSelect, submitBtn);
+  cardBox.append(title, form);
   
   const homeLink=el('a',{href:'index.html',style:{display:'block',textAlign:'center',color:C.teal,fontSize:'13px',marginTop:'30px',textDecoration:'none'}});
   homeLink.textContent='← Back to Homepage';
