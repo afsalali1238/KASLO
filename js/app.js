@@ -25,6 +25,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   const jobCode = params.get('job_id');
   const page    = window.location.pathname.split('/').pop();
 
+  // ── Force Next Step pipeline (shared by all pages) ──────────
+  const PIPELINE=['enquiry','quoted','confirmed','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
+  function getNextStatus(current){ const i=PIPELINE.indexOf(current); return i>=0 && i<PIPELINE.length-1 ? PIPELINE[i+1] : null; }
+  async function forceNextStep(job){
+    const ns=getNextStatus(job.status);
+    if(!ns) return;
+    const extras={};
+    if(ns==='quoted') extras.quoted_price=job.quoted_price||2500;
+    if(ns==='confirmed'){ extras.approval_timestamp=new Date().toISOString(); extras.quoted_price=job.quoted_price||2500; }
+    if(ns==='assigned'){ extras.driver_name='Ahmed Al Rashidi'; extras.vehicle_plate='Dubai A 12345'; extras.driver_phone='+971501234567'; }
+    await KasperDB.updateJob(job.job_code, {status:ns, ...extras});
+    window.location.reload();
+  }
+  // Wire Force Next Step button (exists on approve.html and track-result.html)
+  if(jobCode){
+    const forceBtn=document.getElementById('btn-force-next');
+    if(forceBtn){
+      try{
+        const j=await KasperDB.getJob(jobCode);
+        if(j){
+          const ns=getNextStatus(j.status);
+          if(ns) forceBtn.textContent=`Force → ${ns.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}`;
+          else { forceBtn.textContent='Pipeline Complete'; forceBtn.disabled=true; }
+          forceBtn.addEventListener('click', async()=>{ forceBtn.disabled=true; forceBtn.textContent='Advancing…'; await forceNextStep(j); });
+        }
+      }catch(e){ console.warn('Force btn init failed',e); }
+    }
+  }
+
   // ════════════════════════════════════════════════════════════
   // BOOK PAGE
   // ════════════════════════════════════════════════════════════
