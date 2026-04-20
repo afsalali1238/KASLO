@@ -47,14 +47,19 @@ kasperlogistics.vercel.app
 
 ## Slide 4: How It Works
 
-### 6-Step Digital Lifecycle
+### The Automated Intake & Supply Loop
 
-1. 📱 **Client Books Online** — Equipment or freight, any time
-2. 📩 **Ops Sends Quote** — Price, terms, professional PDF
-3. ✅ **Client Approves** — One-click PO generation
-4. 🚛 **Dispatch** — Visual calendar, assign in seconds
-5. 📋 **ePOD** — Photo + dual signatures + timestamp
-6. 🧾 **Invoice** — Auto-generated, linked to PO and delivery proof
+**1. WhatsApp Intake & Booking:**
+- Client texts Vendor on WhatsApp. 
+- Auto-reply triggers an intelligent booking link.
+- Client fills out requirements (Origin, Cargo, Dates). Data instantly hits the dashboard.
+
+**2. The Digital Lifecycle:**
+- 📩 **Ops Sends Quote** — 1-click pricing PDF sent via link.
+- ✅ **Client Approves** — Instant PO generation.
+- 🚛 **Dispatch** — Ops assigns driver via visual calendar.
+- 📋 **Live GPS & ePOD** — Native background tracking + dual photo signature.
+- 🧾 **Auto-Invoice** — Triggered immediately on delivery.
 
 ---
 
@@ -67,7 +72,7 @@ kasperlogistics.vercel.app
 4. Operations dashboard with KPI cards
 5. 7-day dispatch calendar
 6. Driver ePOD capture
-7. Client tracking timeline
+7. Client tracking map
 
 ---
 
@@ -90,16 +95,19 @@ kasperlogistics.vercel.app
 
 ---
 
-## Slide 7: Business Model
+## Slide 7: Business Model — The "Dual Flywheel"
 
-### Transaction + SaaS Hybrid
+### 1. The Kasper Marketplace (B2B Logistics)
+Operating as a digital freight forwarder and marketplace.
+- **Freight margin:** 8–15% markup on subcontracted capacity
+- **Equipment rental:** Commission on third-party heavy machinery
 
-| Revenue Stream | Model |
-|---------------|-------|
-| **Freight margin** | 8–15% markup on subcontracted capacity |
-| **Equipment rental** | Commission on third-party equipment |
-| **SaaS subscription** | Enterprise dashboard (AED 500–2,000/mo) |
-| **Value-added services** | Insurance, customs, documentation |
+### 2. KasperOS (B2B SaaS for Vendors)
+Providing our proprietary technology as a white-labeled operating system to other rental companies and transport brokers.
+- **Monthly Subscription:** AED 500–2,000/mo per vendor.
+- **Why it works:** Vendors use our system to manage their own clients via WhatsApp. It solves their paper POD and invoicing nightmares while locking them into the Kasper ecosystem.
+
+**The Flywheel Effect:** The more vendors use our SaaS to run their business, the wider our immediate visibility into the UAE's total available truck supply for our own marketplace.
 
 ### Unit Economics (Target)
 - Average booking value: AED 1,200
