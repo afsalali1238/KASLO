@@ -59,10 +59,11 @@
 
     <!-- Live GPS Map -->
     <div id="gps-module" style="display:none;margin-bottom:40px;">
-      <h3 style="margin-bottom:15px;">🔴 Live GPS Tracking</h3>
-      <div id="live-map"></div>
+      <h3 style="margin-bottom:15px;" id="gps-title">🔴 Live GPS Tracking</h3>
+      <div id="live-map" style="display:none;"></div>
+      <div id="static-map" style="width:100%;height:360px;background:url('assets/gps-map.png') center/cover;border-radius:12px;border:2px solid var(--border-color);"></div>
       <div id="gps-status" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.85rem;color:var(--text-muted);">
-        <span id="gps-coords">Waiting for driver location…</span>
+        <span id="gps-coords">Waiting for driver location link…</span>
         <span id="gps-time"></span>
       </div>
     </div>
@@ -219,10 +220,18 @@
           const rows = await r.json();
           if(!rows||!rows[0]) return;
           const job = rows[0];
-          if(!job.driver_lat||!job.driver_lng) return;
 
           const gpsModule = document.getElementById('gps-module');
-          if(gpsModule && ['assigned','in_transit'].includes(job.status)) gpsModule.style.display='block';
+          if(gpsModule && ['assigned','in_transit','delivered'].includes(job.status)) {
+            gpsModule.style.display='block';
+          }
+
+          if(!job.driver_lat||!job.driver_lng) return;
+
+          // If we have coordinates, hide static map and show live map
+          document.getElementById('static-map').style.display='none';
+          document.getElementById('live-map').style.display='block';
+          document.getElementById('gps-title').innerHTML='🔴 Live GPS Tracking <span style="font-size:12px;color:#1D9E75;font-weight:normal;margin-left:8px;">Live</span>';
 
           if(!initialized){
             initMap(job.driver_lat, job.driver_lng);

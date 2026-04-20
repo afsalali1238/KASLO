@@ -4,12 +4,12 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
 
-  // ── Asset injection (unchanged) ─────────────────────────────
+  // ── Asset injection ─────────────────────────────────────────
   const root = document.documentElement;
-  root.style.setProperty('--bg-hero-img-url', `url('../assets/hero-construction-bg.png')`);
+  root.style.setProperty('--bg-hero-img-url', `url('assets/hero-construction-bg.png')`);
   ['gps-map','epod-tablet','boom-truck','flatbed-truck','lowbed-truck'].forEach(id => {
     const el = document.getElementById(`${id}-img`);
-    if (el) el.style.backgroundImage = `url('../assets/${id}.png')`;
+    if (el) el.style.backgroundImage = `url('assets/${id}.png')`;
   });
 
   // ── Smooth scroll ───────────────────────────────────────────
@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(ns==='quoted') extras.quoted_price=job.quoted_price||2500;
     if(ns==='confirmed'){ extras.approval_timestamp=new Date().toISOString(); extras.quoted_price=job.quoted_price||2500; }
     if(ns==='assigned'){ extras.driver_name='Ahmed Al Rashidi'; extras.vehicle_plate='Dubai A 12345'; extras.driver_phone='+971501234567'; }
+    if(ns==='in_transit'){ extras.driver_lat=25.2048; extras.driver_lng=55.2708; extras.driver_location_updated_at=new Date().toISOString(); }
     await KasperDB.updateJob(job.job_code, {status:ns, ...extras});
     window.location.reload();
   }
