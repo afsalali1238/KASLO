@@ -323,6 +323,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       setText('tr-rate', job.quoted_price ? `AED ${Number(job.quoted_price).toLocaleString()}` : 'Pending');
       setText('tr-status', fmtStatus(job.status));
 
+      // Quote Action Banner
+      if (job.status === 'quoted') {
+        const qBanner = document.getElementById('quote-action-banner');
+        const qBtn = document.getElementById('btn-goto-approve');
+        if (qBanner && qBtn) {
+          qBanner.style.display = 'block';
+          qBtn.addEventListener('click', () => {
+            window.location.href = `approve.html?job_id=${encodeURIComponent(job.job_code)}`;
+          });
+        }
+      }
+
       // Driver
       if (job.driver_name) {
         setText('tr-driver', job.driver_name);
