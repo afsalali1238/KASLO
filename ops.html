@@ -304,26 +304,48 @@ function renderBottomNav(tabs,active,onClick){
 // LOGIN
 // ════════════════════════════════════════════════════════════════
 function renderLogin(){
-  const d=el('div',{style:{background:C.bg,padding:'40px 24px 24px',minHeight:'100vh'}});
+  const d=el('div',{style:{background:C.bg,padding:'60px 24px',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center'}});
+  
   const logo=txt('div','⬢ KASPER');logo.style.cssText=`font-size:36px;font-weight:800;color:${C.teal};letter-spacing:3px;text-align:center;margin-bottom:6px`;
   const sub=txt('div','Digital Iron Logistics');sub.style.cssText=`font-size:14px;color:${C.muted};text-align:center;margin-bottom:48px`;
-  d.append(logo,sub);
-  [{role:'driver',icon:'🚛',title:'Driver',desc:'View jobs · Share location on schedule · Complete ePOD'},
-   {role:'ops',icon:'📡',title:'Operations',desc:'Assign jobs · Send quotes · Track fleet · Manage invoicing'}
-  ].forEach(r=>{
-    const card=el('div',{class:'card',style:{padding:'24px',cursor:'pointer',marginBottom:'14px'}});
-    card.onmouseenter=()=>card.style.borderColor=C.teal;
-    card.onmouseleave=()=>card.style.borderColor=C.border;
-    card.onclick=()=>{state.view=r.role;state.sub=null;loadJobs();checkSchedule();render();};
-    const ico=txt('div',r.icon);ico.style.fontSize='32px';ico.style.marginBottom='10px';
-    const title=txt('div',r.title);title.style.cssText=`font-size:18px;font-weight:700;color:${C.text};margin-bottom:6px`;
-    const desc=txt('div',r.desc);desc.style.cssText=`font-size:13px;color:${C.muted};line-height:1.5`;
-    card.append(ico,title,desc);d.append(card);
-  });
-  const foot=txt('div','Demo — tap a role to continue');foot.style.cssText=`text-align:center;font-size:12px;color:${C.muted};margin-top:16px`;
-  const homeLink=el('a',{href:'index.html',style:{display:'block',textAlign:'center',color:C.teal,fontSize:'13px',marginTop:'12px',textDecoration:'none'}});
+  
+  const cardBox=el('div',{class:'card',style:{padding:'30px 24px',width:'100%',maxWidth:'400px'}});
+  const title=txt('h2','Staff Portal Login');title.style.cssText=`font-size:22px;margin-bottom:24px;text-align:center`;
+  
+  const form=el('form');
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const pin = pinInput.value;
+    if(pin === '1234') {
+        state.view='ops'; state.sub=null; loadJobs(); checkSchedule(); render();
+    } else if (pin === '0000') {
+        state.view='driver'; state.sub=null; loadJobs(); checkSchedule(); render();
+    } else {
+        errorMsg.style.display = 'block';
+    }
+  };
+
+  const idLabel=txt('label','Mobile Number / Staff ID');idLabel.style.cssText=`display:block;margin-bottom:8px;font-size:13px;color:${C.muted}`;
+  const idInput=el('input',{type:'text',placeholder:'e.g. 050 123 4567',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'20px',fontSize:'16px'}});
+  
+  const pinLabel=txt('label','PIN Code');pinLabel.style.cssText=`display:block;margin-bottom:8px;font-size:13px;color:${C.muted}`;
+  const pinInput=el('input',{type:'password',placeholder:'Enter 4-digit PIN',required:true,style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'10px',fontSize:'16px'}});
+  
+  const errorMsg = txt('div','Invalid PIN. Try 1234 (Ops) or 0000 (Driver)'); errorMsg.style.cssText=`color:#FF6B6B;font-size:12px;margin-bottom:20px;text-align:center;display:none;`;
+  
+  const submitBtn=el('button',{type:'submit',style:{width:'100%',padding:'16px',background:C.teal,color:'#fff',border:'none',borderRadius:'8px',fontSize:'16px',fontWeight:'bold',cursor:'pointer'}});
+  submitBtn.textContent = 'Login';
+  
+  const hints = txt('div','Demo Access: PIN 1234 (Ops) | PIN 0000 (Driver)');hints.style.cssText=`margin-top:24px;font-size:12px;color:${C.muted};text-align:center;line-height:1.6`;
+
+  form.append(idLabel, idInput, pinLabel, pinInput, errorMsg, submitBtn);
+  cardBox.append(title, form, hints);
+  
+  const homeLink=el('a',{href:'index.html',style:{display:'block',textAlign:'center',color:C.teal,fontSize:'13px',marginTop:'30px',textDecoration:'none'}});
   homeLink.textContent='← Back to Homepage';
-  d.append(foot,homeLink);return d;
+  
+  d.append(logo, sub, cardBox, homeLink);
+  return d;
 }
 
 // ════════════════════════════════════════════════════════════════
