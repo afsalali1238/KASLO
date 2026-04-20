@@ -229,26 +229,38 @@ async function forceNextStep(job){
 
 // ── Reset Demo Data ───────────────────────────────────────────────
 async function resetDemoData(){
-  if(!confirm('Restore demo jobs to their original pipeline stages?')) return;
+  if(!confirm('Restore demo jobs to an ideal testing layout?')) return;
   try{
-    const clearOpts = { driver_name:null, vehicle_plate:null, driver_phone:null, driver_lat:null, driver_lng:null, epod_client_done:false };
+    // Fetch latest 10 jobs for current vendor
+    const params = state.vendor_id ? `&vendor_id=eq.${state.vendor_id}` : '';
+    const rows = await sb.get(`jobs?order=created_at.desc&limit=10${params}`);
+    if(!rows || rows.length < 5){ alert('Not enough jobs to arrange a spread. Please create a few more.'); return; }
     
-    await Promise.all([
-      // Kasper Setup
-      sb.patch('jobs?job_code=eq.KSP-20260420-0104', { status:'enquiry', quoted_price:null, ...clearOpts }),
-      sb.patch('jobs?job_code=eq.KSP-20260420-0100', { status:'quoted', quoted_price:2500, ...clearOpts }),
-      sb.patch('jobs?job_code=eq.KSP-20260420-0098', { status:'confirmed', quoted_price:3500, approval_timestamp:new Date().toISOString(), ...clearOpts }),
-      sb.patch('jobs?job_code=eq.KSP-20260420-0095', { status:'assigned', quoted_price:1200, driver_name:'Rajesh Kumar', vehicle_plate:'Dubai B 7890', driver_phone='+971509998888', epod_client_done:false }),
-      sb.patch('jobs?job_code=eq.KSP-20260420-0080', { status:'in_transit', quoted_price:4500, driver_name:'Ahmed Al Rashidi', vehicle_plate:'Dubai A 12345', driver_phone='+971501234567', epod_client_done:false }),
-      sb.patch('jobs?job_code=eq.KSP-20260420-0072', { status:'delivered', driver_name:'John Smith', epod_client_done:false }),
-      // AHC Vendor Setup
-      sb.patch('jobs?job_code=eq.AHC-20260420-0001', { status:'enquiry', quoted_price:null, ...clearOpts }),
-      sb.patch('jobs?job_code=eq.AHC-20260420-0002', { status:'quoted', quoted_price:1500, ...clearOpts }),
-      sb.patch('jobs?job_code=eq.AHC-20260420-0003', { status:'confirmed', quoted_price:2800, approval_timestamp:new Date().toISOString(), ...clearOpts }),
-      sb.patch('jobs?job_code=eq.AHC-20260420-0004', { status:'in_transit', driver_name:'Salim Khoury', epod_client_done:false }),
-      sb.patch('jobs?job_code=eq.AHC-20260420-0005', { status:'delivered', driver_name:'Salim Khoury', epod_client_done:false }),
-    ]);
+    // We want a perfect spread for the demo
+    const spread = [
+      { status:'enquiry', quoted_price:null },
+      { status:'quoted', quoted_price:2500 },
+      { status:'confirmed', quoted_price:3500, approval_timestamp:new Date().toISOString() },
+      { status:'assigned', quoted_price:1200, driver_name:'Ahmed Al Rashidi', vehicle_plate:'Dubai A 12345', driver_phone='+971501234567' },
+      { status:'in_transit', quoted_price:4500, driver_name:'Salim Khoury', vehicle_plate:'Sharjah C 44521', driver_phone='+971559887766', driver_lat:25.2048, driver_lng:55.2708 },
+      { status:'delivered', driver_name:'John Smith', epod_client_done:false }
+    ];
 
+    const tasks = [];
+    const clearOpts = { quote_notes:null, quote_sent_at:null, approval_timestamp:null, driver_name:null, vehicle_plate:null, driver_phone:null, driver_lat:null, driver_lng:null, epod_client_done:false };
+
+    for(let i=0; i<Math.min(rows.length, spread.length); i++){
+      const job = rows[i];
+      const target = spread[i];
+      tasks.push(sb.patch(`jobs?job_code=eq.${job.job_code}`, { ...clearOpts, ...target }));
+    }
+
+    // Set any remaining jobs to enquiry
+    for(let i=spread.length; i<rows.length; i++){
+      tasks.push(sb.patch(`jobs?job_code=eq.${rows[i].job_code}`, { status:'enquiry', ...clearOpts }));
+    }
+
+    await Promise.all(tasks);
     await loadJobs();
     alert('✅ Dashboard layout magically restored!');
   }catch(e){ console.error('Reset failed',e); alert('Reset failed — see console.'); }
