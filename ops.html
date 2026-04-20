@@ -332,7 +332,19 @@ const sEl=document.createElement('style');sEl.textContent=css;document.head.appe
 function renderTopBar(title,onBack,right){
   const bar=el('div',{class:'topbar'});
   if(onBack){const b=el('button',{class:'back-btn',onclick:onBack});b.textContent='‹';bar.append(b);}
-  const t=txt('span',title,'topbar-title');bar.append(t);
+  
+  const tc=el('div',{style:{flex:'1',display:'flex',alignItems:'center',gap:'8px'}});
+  if(!onBack){
+     const isAHC = state.vendor_id === '22222222-2222-2222-2222-222222222222';
+     const lg=txt('span', isAHC ? '⬢ AL HAMD' : '⬢ KASPER');
+     lg.style.cssText=`font-weight:800;color:${isAHC?C.amber:C.teal};letter-spacing:1px;font-size:16px`;
+     tc.append(lg);
+  }
+  const t=txt('span', onBack ? title : `—  ${title}`);
+  t.style.cssText=`font-size:${onBack?'16px':'13px'};color:${onBack?C.text:C.muted};font-weight:${onBack?'700':'500'};`;
+  tc.append(t);
+  bar.append(tc);
+
   if(right)bar.append(right);
   return bar;
 }
