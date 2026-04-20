@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Kasper Mobile</title>
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Kasper Operations</title>
 <style>
 /* ── Config ─────────────────────────────────────────────────────── */
 /*  FILL IN BEFORE USE — same values as kasper-db.js               */
@@ -130,21 +134,49 @@ const outlineBtn=(text,color,onClick,disabled=false)=>{
 
 const card=(style='')=>{const d=el('div',{class:'card'}); if(style)d.style.cssText+=style; return d;};
 
-// ── Location ──────────────────────────────────────────────────────
+// ── Location — Live GPS push to Supabase ─────────────────────────
+let gpsInterval=null;
+async function pushGPS(lat,lng){
+  // Push to active in_transit job
+  const activeJob=state.jobs.find(j=>j.status==='in_transit' && (j.driver_name==='Ahmed Al Rashidi'||j.driverId===1));
+  if(!activeJob) return;
+  try{
+    await sb.patch(`jobs?job_code=eq.${encodeURIComponent(activeJob.job_code)}`,{
+      driver_lat:lat, driver_lng:lng, driver_location_updated_at:new Date().toISOString()
+    });
+  }catch(e){console.warn('GPS push failed',e);}
+}
+
 function startTracking(){
   if(state.tracking) return;
   if(navigator.geolocation){
     watchId=navigator.geolocation.watchPosition(
-      p=>{state.location={lat:p.coords.latitude.toFixed(5),lng:p.coords.longitude.toFixed(5)};render();},
+      p=>{
+        const lat=p.coords.latitude, lng=p.coords.longitude;
+        state.location={lat:lat.toFixed(5),lng:lng.toFixed(5)};
+        render();
+      },
       ()=>{state.location={lat:'25.20480',lng:'55.27080'};render();},
-      {enableHighAccuracy:true,timeout:8000,maximumAge:0}
+      {enableHighAccuracy:true,timeout:10000,maximumAge:5000}
     );
-  } else state.location={lat:'25.20480',lng:'55.27080'};
+    // Push GPS to Supabase every 10 seconds
+    gpsInterval=setInterval(()=>{
+      if(state.location) pushGPS(parseFloat(state.location.lat),parseFloat(state.location.lng));
+    },10000);
+    // Also push immediately on first fix
+    setTimeout(()=>{
+      if(state.location) pushGPS(parseFloat(state.location.lat),parseFloat(state.location.lng));
+    },2000);
+  } else {
+    state.location={lat:'25.20480',lng:'55.27080'};
+  }
   state.tracking=true; render();
 }
 function stopTracking(){
   if(watchId)navigator.geolocation.clearWatch(watchId);
-  watchId=null; state.tracking=false; state.location=null; render();
+  if(gpsInterval)clearInterval(gpsInterval);
+  watchId=null; gpsInterval=null;
+  state.tracking=false; state.location=null; render();
 }
 function inWindow(){
   if(!state.schedOn) return false;
@@ -983,6 +1015,8 @@ if(schedIv)clearInterval(schedIv);
 schedIv=setInterval(checkSchedule,60000);
 // Auto-refresh jobs every 15s when in ops view
 setInterval(()=>{ if(state.view==='ops' && !state.sub) loadJobs(); }, 15000);
+// Register service worker for PWA
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>

@@ -45,6 +45,11 @@ CREATE TABLE IF NOT EXISTS jobs (
   vehicle_plate     TEXT,
   traccar_link      TEXT,
 
+  -- Live GPS tracking (from driver's phone)
+  driver_lat        DOUBLE PRECISION,
+  driver_lng        DOUBLE PRECISION,
+  driver_location_updated_at TIMESTAMPTZ,
+
   -- ePOD
   epod_driver_done  BOOLEAN     DEFAULT false,
   epod_client_done  BOOLEAN     DEFAULT false,
