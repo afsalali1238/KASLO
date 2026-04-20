@@ -211,7 +211,7 @@ async function updateJobStatus(jobCode, updates){
 function selJob(){ return state.jobs.find(j=>j.job_code===state.selId||j.id===state.selId); }
 
 // ── Force Next Step pipeline ──────────────────────────────────────
-const STATUS_PIPELINE=['enquiry','quoted','confirmed','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
+const STATUS_PIPELINE=['enquiry','quoted','po_pending','confirmed','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
 function nextStatus(current){
   const idx=STATUS_PIPELINE.indexOf(current);
   if(idx<0||idx>=STATUS_PIPELINE.length-1) return null;
@@ -222,7 +222,7 @@ async function forceNextStep(job){
   if(!ns) return;
   const extras={};
   if(ns==='quoted') extras.quoted_price=job.quoted_price||2500;
-  if(ns==='confirmed'){ extras.approval_timestamp=new Date().toISOString(); extras.quoted_price=job.quoted_price||2500; }
+  if(ns==='po_pending'){ extras.approval_timestamp=new Date().toISOString(); extras.quoted_price=job.quoted_price||2500; }
   if(ns==='assigned'){ extras.driver_name=extras.driver_name||'Ahmed Al Rashidi'; extras.vehicle_plate='Dubai A 12345'; extras.driver_phone='+971501234567'; }
   await updateJobStatus(job.job_code,{status:ns,...extras});
 }
@@ -240,7 +240,8 @@ async function resetDemoData(){
     const spread = [
       { status:'enquiry', quoted_price:null },
       { status:'quoted', quoted_price:2500 },
-      { status:'confirmed', quoted_price:3500, approval_timestamp:new Date().toISOString() },
+      { status:'po_pending', quoted_price:3500, approval_timestamp:new Date().toISOString() },
+      { status:'confirmed', quoted_price:3800, approval_timestamp:new Date().toISOString() },
       { status:'assigned', quoted_price:1200, driver_name:'Ahmed Al Rashidi', vehicle_plate:'Dubai A 12345', driver_phone:'+971501234567' },
       { status:'in_transit', quoted_price:4500, driver_name:'Salim Khoury', vehicle_plate:'Sharjah C 44521', driver_phone:'+971559887766', driver_lat:25.2048, driver_lng:55.2708 },
       { status:'delivered', driver_name:'John Smith', epod_client_done:false }
@@ -752,7 +753,7 @@ function renderOpsJobs(){
   const d=el('div',{class:'pad'});
   if(loading){const l=txt('div','Loading…','loading-pulse');l.style.cssText=`color:${C.muted};text-align:center;padding:40px`;d.append(l);return d;}
 
-  const groups=[{key:'enquiry',label:'New Enquiries'},{key:'quoted',label:'Quoted'},{key:'confirmed',label:'Confirmed'},
+  const groups=[{key:'enquiry',label:'New Enquiries'},{key:'quoted',label:'Quoted'},{key:'po_pending',label:'PO Pending'},{key:'confirmed',label:'Confirmed'},
     {key:'assigned',label:'Assigned'},{key:'in_transit',label:'In Transit'},{key:'delivered',label:'Delivered'},
     {key:'epod_pending',label:'ePOD Pending'},{key:'invoiced',label:'Invoiced'}];
   groups.forEach(g=>{
@@ -799,8 +800,8 @@ function renderOpsJobDetail(){
 
   // Timeline
   const tc=el('div',{class:'card'});tc.append(txt('div','TIMELINE','lbl'));
-  const steps=['enquiry','quoted','confirmed','assigned','in_transit','delivered','epod_pending','invoiced'];
-  const labels=['Enquiry','Quoted','Confirmed','Assigned','In Transit','Delivered','ePOD Pending','Invoiced'];
+  const steps=['enquiry','quoted','po_pending','confirmed','assigned','in_transit','delivered','epod_pending','invoiced'];
+  const labels=['Enquiry','Quoted','PO Pending','Confirmed','Assigned','In Transit','Delivered','ePOD Pending','Invoiced'];
   const curIdx=steps.indexOf(j.status);
   steps.forEach((s,i)=>{
     const r=el('div',{style:{display:'flex',gap:'12px',marginBottom:i<steps.length-1?'10px':'0'}});
@@ -893,6 +894,23 @@ function renderOpsJobDetail(){
     });
     fab.style.cssText+=`;font-size:12px;padding:8px 16px;width:100%;opacity:.7`;
     d.append(faLabel,fab);
+  }
+
+  // PO Approval (Pending Verification)
+  if(j.status==='po_pending'){
+    const poc = el('div',{class:'card',style:{borderColor:C.amber,background:C.amberDim,marginTop:'10px',textAlign:'center',padding:'20px 16px'}});
+    poc.append(txt('div','CLIENT SUBMITTED PO','lbl'), txt('div', 'The client has approved the quote. Please verify their Purchase Order or credit terms before confirming this dispatch.'));
+    poc.children[1].style.cssText=`font-size:13px;color:${C.text};margin:6px 0 16px;`;
+    
+    const vpo = btn('✓ Approve PO & Confirm Order', C.teal, async()=>{
+      if(!confirm("Have you verified the client's PO or payment terms?")) return;
+      vpo.textContent='Approving…';vpo.disabled=true;
+      await updateJobStatus(j.job_code, { status: 'confirmed' });
+      state.sub=null; await loadJobs();
+    });
+    vpo.style.fontWeight = '700';
+    poc.append(vpo);
+    acts.append(poc);
   }
 
   // Assign driver (confirmed)

@@ -26,7 +26,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const page    = window.location.pathname.split('/').pop();
 
   // ── Force Next Step pipeline (shared by all pages) ──────────
-  const PIPELINE=['enquiry','quoted','confirmed','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
+  function fmtStatus(s) {
+    const map = {
+      'enquiry':'Enquiry','quoted':'Quoted','po_pending':'PO Verification',
+      'confirmed':'Confirmed','assigned':'Assigned','in_transit':'In Transit',
+      'delivered':'Delivered','epod_pending':'ePOD Pending','epod_done':'ePOD Signed',
+      'invoiced':'Invoiced','paid':'Paid'
+    };
+    return map[s] || s;
+  }
+  const PIPELINE=['enquiry','quoted','po_pending','confirmed','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
   function getNextStatus(current){ const i=PIPELINE.indexOf(current); return i>=0 && i<PIPELINE.length-1 ? PIPELINE[i+1] : null; }
   async function forceNextStep(job){
     const ns=getNextStatus(job.status);
@@ -210,10 +219,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Status checks
-      if (job.status === 'confirmed' || job.approval_timestamp) {
+      if (['po_pending', 'confirmed', 'assigned', 'in_transit', 'delivered', 'epod_pending', 'invoiced'].includes(job.status)) {
         approveBtn.disabled = true;
         approveBtn.style.background = 'var(--accent-teal)';
-        approveBtn.textContent = '✓ ORDER ALREADY CONFIRMED';
+        approveBtn.textContent = '✓ QUOTE APPROVED (PO UNDER REVIEW)';
         return;
       }
 
@@ -232,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Ready to approve
       approveBtn.disabled = false;
-      approveBtn.textContent = 'I APPROVE THIS QUOTE AND CONFIRM THE ORDER';
+      approveBtn.textContent = 'I APPROVE THIS QUOTE AND UPLOAD PO';
 
       approveBtn.addEventListener('click', async () => {
         approveBtn.disabled = true;
@@ -240,14 +249,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
           await KasperDB.updateJob(job.job_code, {
-            status: 'confirmed',
+            status: 'po_pending',
             approval_timestamp: new Date().toISOString(),
           });
 
           approveBtn.style.background = 'var(--accent-teal)';
-          approveBtn.textContent = `ORDER CONFIRMED — Track: ${job.job_code}`;
+          approveBtn.textContent = `PO SUBMITTED — Track: ${job.job_code}`;
 
-          showToast('Order Confirmed!', `Your tracking code is <strong>${job.job_code}</strong>. Redirecting to track page…`);
+          showToast('Quote Approved!', `Your tracking code is <strong>${job.job_code}</strong>. Ops will review your PO shortly.`);
 
           setTimeout(() => {
             window.location.href = KasperDB.trackLink(job.job_code);
