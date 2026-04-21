@@ -1,21 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#1D9E75">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.json">
-<title>Kasper Operations</title>
-<style>
-/* ── Config ─────────────────────────────────────────────────────── */
-/*  FILL IN BEFORE USE — same values as kasper-db.js               */
-</style>
-</head>
-<body>
-<div id="app"></div>
-<script>
 // ════════════════════════════════════════════════════════════════
 // KASPER MOBILE APP — Connected to Supabase
 // ════════════════════════════════════════════════════════════════
@@ -1156,28 +1138,3 @@ function render(){
     else if(opsTab==='jobs')scroll.append(renderOpsJobs());
     else scroll.append(renderOpsFleet());
   }
-
-  app.append(scroll);
-
-  if(!sub){
-    const tabs=view==='driver'
-      ?[{key:'home',label:'Home',icon:'⌂'},{key:'jobs',label:'My Jobs',icon:'📋'},{key:'location',label:'Location',icon:'📍'}]
-      :[{key:'dashboard',label:'Dashboard',icon:'◈'},{key:'jobs',label:'Jobs',icon:'☰'},{key:'fleet',label:'Fleet',icon:'◉'}];
-    const active=view==='driver'?state.driverTab:state.opsTab;
-    app.append(renderBottomNav(tabs,active,k=>{
-      if(view==='driver')state.driverTab=k; else state.opsTab=k; render();
-    }));
-  }
-}
-
-// ── Boot ─────────────────────────────────────────────────────────
-render();
-if(schedIv)clearInterval(schedIv);
-schedIv=setInterval(checkSchedule,60000);
-// Auto-refresh jobs every 15s when in ops view
-setInterval(()=>{ if(state.view==='ops' && !state.sub) loadJobs(); }, 15000);
-// Register service worker for PWA
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
-</script>
-</body>
-</html>

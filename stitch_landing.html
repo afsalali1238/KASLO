@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kasper Logistics - Dubai 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-fixed-dim": "#c7c6c6",
+                        "outline-variant": "#424754",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "error-container": "#93000a",
+                        "tertiary-fixed": "#e2e2e2",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-primary-fixed-variant": "#004299",
+                        "on-primary-container": "#00275f",
+                        "background": "#131313",
+                        "inverse-on-surface": "#303030",
+                        "on-error": "#690005",
+                        "surface-dim": "#131313",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed": "#001944",
+                        "on-tertiary-container": "#282a2a",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "secondary-container": "#464747",
+                        "on-secondary-container": "#b6b5b5",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "on-surface-variant": "#c2c6d7",
+                        "surface-container-low": "#1b1c1c",
+                        "on-surface": "#e5e2e1",
+                        "outline": "#8c90a0",
+                        "surface-variant": "#353535",
+                        "surface-container-highest": "#353535",
+                        "secondary-fixed": "#e4e2e2",
+                        "on-primary": "#002d6d",
+                        "primary-fixed-dim": "#afc6ff",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "surface": "#131313",
+                        "on-secondary-fixed-variant": "#464747",
+                        "surface-bright": "#393939",
+                        "surface-tint": "#afc6ff",
+                        "primary-container": "#528dff",
+                        "inverse-primary": "#0059c7",
+                        "on-tertiary": "#2f3131",
+                        "secondary": "#c7c6c6",
+                        "surface-container": "#1f2020",
+                        "tertiary-container": "#909191",
+                        "error": "#ffb4ab",
+                        "on-background": "#e5e2e1",
+                        "on-secondary": "#303031",
+                        "primary": "#afc6ff",
+                        "inverse-surface": "#e5e2e1",
+                        "tertiary": "#c6c6c7",
+                        "primary-fixed": "#d9e2ff"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Space Grotesk", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #131313; color: #e5e2e1; }
+        h1, h2, h3, h4, h5, h6, .font-headline { font-family: 'Space Grotesk', sans-serif; }
+        .label-text { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.05em; text-transform: uppercase; }
+        .glass-panel { background: rgba(27, 28, 28, 0.6); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+        .kinetic-glow:hover { box-shadow: 0 0 20px rgba(175, 198, 255, 0.4); transition: box-shadow 0.3s ease; }
+        .ghost-border { border: 1px solid rgba(66, 71, 84, 0.15); }
+        .ambient-shadow { box-shadow: 0 20px 40px rgba(175, 198, 255, 0.05); }
+        .btn-primary-inner-shadow { box-shadow: inset 0 2px 0 rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed top-0 w-full z-50 bg-[#131313]/80 backdrop-blur-xl shadow-[0_0_40px_rgba(175,198,255,0.05)] border-b-0 hidden md:block">
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-[1920px] mx-auto">
+<div class="text-2xl font-bold tracking-tighter text-[#afc6ff] font-['Space_Grotesk']">
+                NEO-LINK DUBAI
+            </div>
+<nav class="flex gap-8 items-center bg-neutral-900/50 px-6 py-2 rounded-full">
+<a class="font-['Space_Grotesk'] uppercase tracking-[0.05em] text-sm text-[#afc6ff] border-b-2 border-[#afc6ff] pb-1 scale-95 transition-transform" href="#">Network</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-[0.05em] text-sm text-neutral-400 hover:text-white transition-colors duration-300 scale-95 active:scale-90 transition-transform" href="#">Fleet</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-[0.05em] text-sm text-neutral-400 hover:text-white transition-colors duration-300 scale-95 active:scale-90 transition-transform" href="#">Terminal</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-[0.05em] text-sm text-neutral-400 hover:text-white transition-colors duration-300 scale-95 active:scale-90 transition-transform" href="#">Intelligence</a>
+</nav>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="text-neutral-400 hover:text-white transition-colors duration-300 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-neutral-400 hover:text-white transition-colors duration-300 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/30">
+<img alt="Chief Logistics Officer Profile" class="w-full h-full object-cover" data-alt="professional portrait of logistics executive in futuristic dark setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChJHuZ1mVx2YfKTAAqStV9F1AQuhbH5DE2Gsf1jOx6YtxiYy2DdnUEqmDP4VDxaNeChYJ61BiOgVcR9C0LaBPgM2iJlv30-HgAmC-Ex3zGrgJkJHQpDJt91IybJId5joPqMBHwRH383jwNPvVp1C3zmsyW8-SUiM4rzO055pNo6wm1uKDOLLPGw1ZAy5-_jjKl_sbFtLRSC7I4EAPcJVlMzRFbywha50JvUJS5xe2oU1-iFZ_WJXtm43dwxPAhmP0jUGpnBI0Bs3LR"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Mobile Nav Toggle (Simplified for structure) -->
+<div class="md:hidden fixed top-0 w-full z-50 bg-[#131313]/90 backdrop-blur-md p-4 flex justify-between items-center">
+<div class="text-xl font-bold tracking-tighter text-primary font-headline">NEO-LINK DUBAI</div>
+<button class="text-primary"><span class="material-symbols-outlined">menu</span></button>
+</div>
+<main class="flex-grow pt-24 md:pt-32">
+<!-- Hero Section -->
+<section class="relative w-full min-h-[870px] flex items-center justify-center overflow-hidden px-4 md:px-8">
+<!-- Background Image -->
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background z-10"></div>
+<img alt="Futuristic Dubai Port" class="w-full h-full object-cover object-center opacity-40" data-alt="futuristic neon-lit dubai port at night with autonomous high-tech logistics trucks and dramatic cyan lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHG9EzPc3Mn8esI3W7_ET3X8jbpLz2xTdb_HnvRRnPP4w9x4QENasD8cZuucFShUdkVm15VoXHuwcRrW187LNZXcPQkJWJiPeJf-o5UNkvTFrGKqTbFvqht4y7nqsp4ni4s3x8yZEk30lLWGYscgLTeOOg1SX6R4JAW73Lpz_7JV0HsMGPDPblt0A2gBY0KzKrrgFYm65r0pK1qcVmXUxNAu3Manb0bB23wGeBYA4QExUGzqkob5W-3aTGF1XNM-2HbmTh9l2ZD3_C"/>
+</div>
+<div class="relative z-20 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<div class="lg:col-span-7 flex flex-col items-start">
+<div class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high/80 backdrop-blur-md rounded-sm mb-6 ghost-border">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="label-text text-xs text-primary">SYSTEMS NOMINAL • Jebel Ali Zone 04</span>
+</div>
+<h1 class="text-5xl md:text-7xl font-bold font-headline text-on-surface leading-tight mb-6 tracking-tight">
+                        Architecting the Future of <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-container">Global Logistics</span>
+</h1>
+<p class="text-lg md:text-xl text-on-surface-variant font-body max-w-2xl mb-10 leading-relaxed">
+                        Precision-engineered supply chain infrastructure for 2026. Leveraging autonomous fleets and deep telemetry to redefine cargo movement across the Middle East.
+                    </p>
+<div class="flex flex-wrap gap-4">
+<button class="bg-primary text-on-primary font-headline font-semibold uppercase tracking-wider text-sm px-8 py-4 rounded-sm btn-primary-inner-shadow kinetic-glow flex items-center gap-2">
+                            INITIATE PROTOCOL
+                            <span class="material-symbols-outlined text-lg">rocket_launch</span>
+</button>
+<button class="bg-transparent text-primary font-headline font-semibold uppercase tracking-wider text-sm px-8 py-4 rounded-sm ghost-border hover:bg-surface-container-low transition-colors flex items-center gap-2">
+                            View Telemetry
+                            <span class="material-symbols-outlined text-lg">query_stats</span>
+</button>
+</div>
+</div>
+<!-- Hero HUD Element -->
+<div class="lg:col-span-5 hidden lg:block">
+<div class="glass-panel p-6 rounded-lg ghost-border ambient-shadow relative">
+<div class="absolute top-0 right-0 p-4 opacity-30">
+<span class="material-symbols-outlined text-6xl text-primary">architecture</span>
+</div>
+<h3 class="label-text text-sm text-secondary-fixed-dim mb-4 border-b border-outline-variant/20 pb-2 inline-block">Live Fleet Status</h3>
+<div class="space-y-4 mt-4">
+<!-- Telemetry Item -->
+<div class="flex justify-between items-center bg-surface-container-highest/50 p-3 rounded-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">local_shipping</span>
+<div>
+<div class="font-headline text-sm font-semibold text-on-surface">Unit AX-709</div>
+<div class="text-xs text-on-surface-variant font-body">In Transit • DXB Terminal</div>
+</div>
+</div>
+<div class="text-right">
+<div class="text-primary font-headline text-sm">98.2%</div>
+<div class="text-[10px] text-secondary-fixed-dim uppercase tracking-widest">Efficiency</div>
+</div>
+</div>
+<!-- Telemetry Item -->
+<div class="flex justify-between items-center bg-surface-container-highest/50 p-3 rounded-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">flight_takeoff</span>
+<div>
+<div class="font-headline text-sm font-semibold text-on-surface">Flight KQ-22</div>
+<div class="text-xs text-on-surface-variant font-body">Clearance • DWC</div>
+</div>
+</div>
+<div class="text-right">
+<div class="text-secondary font-headline text-sm">ETA 14:00</div>
+<div class="text-[10px] text-secondary-fixed-dim uppercase tracking-widest">Schedule</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Core Capabilities Section -->
+<section class="py-24 px-4 md:px-8 bg-surface-container-lowest relative">
+<div class="max-w-7xl mx-auto">
+<div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+<div>
+<h2 class="label-text text-primary text-sm mb-2">Operational Matrix</h2>
+<h3 class="text-4xl md:text-5xl font-headline font-bold text-on-surface">Core Capabilities</h3>
+</div>
+<p class="text-on-surface-variant font-body max-w-md text-sm">
+                        Integrating physical infrastructure with deep digital oversight to provide unbroken logistical continuity.
+                    </p>
+</div>
+<!-- Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Capability 1 -->
+<div class="bg-surface-container-low p-8 rounded-md flex flex-col group hover:bg-surface-container-high transition-colors duration-300 ambient-shadow">
+<div class="w-12 h-12 bg-surface-container-highest rounded-sm flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">public</span>
+</div>
+<h4 class="text-xl font-headline font-semibold text-on-surface mb-3">Freight Forwarding</h4>
+<p class="text-sm text-on-surface-variant font-body mb-8 flex-grow">
+                            Global multimodal transport networks optimized by predictive AI routing algorithms.
+                        </p>
+<div class="label-text text-xs text-secondary-fixed-dim flex items-center gap-1 group-hover:text-primary transition-colors">
+                            Explore Network <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</div>
+</div>
+<!-- Capability 2 -->
+<div class="bg-surface-container-low p-8 rounded-md flex flex-col group hover:bg-surface-container-high transition-colors duration-300 ambient-shadow md:translate-y-8">
+<div class="w-12 h-12 bg-surface-container-highest rounded-sm flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+</div>
+<h4 class="text-xl font-headline font-semibold text-on-surface mb-3">Equipment Marketplace</h4>
+<p class="text-sm text-on-surface-variant font-body mb-8 flex-grow">
+                            Dynamic allocation of heavy machinery and autonomous loading units across active zones.
+                        </p>
+<div class="label-text text-xs text-secondary-fixed-dim flex items-center gap-1 group-hover:text-primary transition-colors">
+                            View Inventory <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</div>
+</div>
+<!-- Capability 3 -->
+<div class="bg-surface-container-low p-8 rounded-md flex flex-col group hover:bg-surface-container-high transition-colors duration-300 ambient-shadow md:translate-y-16">
+<div class="w-12 h-12 bg-surface-container-highest rounded-sm flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">architecture</span>
+</div>
+<h4 class="text-xl font-headline font-semibold text-on-surface mb-3">Project Logistics</h4>
+<p class="text-sm text-on-surface-variant font-body mb-8 flex-grow">
+                            End-to-end management of oversized architectural components for mega-structures.
+                        </p>
+<div class="label-text text-xs text-secondary-fixed-dim flex items-center gap-1 group-hover:text-primary transition-colors">
+                            Case Studies <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="bg-[#131313] w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center border-t border-white/5 relative z-10 mt-auto">
+<div class="text-lg font-bold text-neutral-200 font-['Space_Grotesk'] mb-6 md:mb-0">
+            NEO-LINK DUBAI
+        </div>
+<div class="flex gap-6 mb-6 md:mb-0">
+<a class="font-['Inter'] text-[10px] uppercase tracking-widest text-neutral-600 hover:text-[#afc6ff] opacity-80 hover:opacity-100 transition-all" href="#">Privacy Protocol</a>
+<a class="font-['Inter'] text-[10px] uppercase tracking-widest text-neutral-600 hover:text-[#afc6ff] opacity-80 hover:opacity-100 transition-all" href="#">Terms of Service</a>
+<a class="font-['Inter'] text-[10px] uppercase tracking-widest text-neutral-600 hover:text-[#afc6ff] opacity-80 hover:opacity-100 transition-all" href="#">API Documentation</a>
+</div>
+<div class="font-['Inter'] text-[10px] uppercase tracking-widest text-neutral-500">
+            © 2026 DUBAI KINETIC LOGISTICS. ALL SYSTEMS OPERATIONAL.
+        </div>
+</footer>
+</body></html>
