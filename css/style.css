@@ -194,11 +194,11 @@ h1, h2, h3, h4 {
 .hero-background {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-image: var(--bg-hero-img-url, linear-gradient(135deg, var(--bg-main) 0%, rgba(0, 242, 255, 0.03) 100%));
+    background-image: url('../assets/hero-construction-bg.png');
     background-size: cover;
     background-position: center;
     z-index: 0;
-    opacity: 0.55;
+    opacity: 0.6;
 }
 /* Gradient overlay for depth — keeps text readable over the image */
 .hero::after {
