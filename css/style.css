@@ -197,16 +197,16 @@ h1, h2, h3, h4 {
     background-image: var(--bg-hero-img-url, linear-gradient(135deg, var(--bg-main) 0%, rgba(0, 242, 255, 0.03) 100%));
     background-size: cover;
     background-position: center;
-    z-index: -1;
-    opacity: 0.35;
+    z-index: 0;
+    opacity: 0.55;
 }
-/* Gradient overlay for depth */
+/* Gradient overlay for depth — keeps text readable over the image */
 .hero::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(19,19,19,0.3) 0%, rgba(19,19,19,0.6) 50%, var(--bg-main) 100%);
-    z-index: -1;
+    background: linear-gradient(to bottom, rgba(19,19,19,0.1) 0%, rgba(19,19,19,0.35) 60%, var(--bg-main) 100%);
+    z-index: 0;
     pointer-events: none;
 }
 
