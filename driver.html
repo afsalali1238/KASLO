@@ -358,6 +358,16 @@ function renderActionBlock() {
         </div>
         
         <div class="input-group">
+          <label>Designation</label>
+          <input type="text" id="epod-designation" class="input-field" placeholder="e.g. Site Manager">
+        </div>
+        
+        <div class="input-group">
+          <label>Mobile Number</label>
+          <input type="tel" id="epod-mobile" class="input-field" placeholder="e.g. 050 123 4567">
+        </div>
+        
+        <div class="input-group">
           <label>Signature</label>
           <div class="canvas-wrapper"><canvas id="sig-pad"></canvas></div>
           <button class="btn clear-sig" onclick="window.clearSig()">Clear Signature</button>
@@ -446,16 +456,21 @@ window.clearSig = () => {
 
 window.submitEpod = async () => {
   const name = $('epod-name').value.trim();
-  if(!name) { showToast('⚠️ Receiver Name is required'); return; }
+  const desig = $('epod-designation').value.trim();
+  const mobile = $('epod-mobile').value.trim();
+  
+  if(!name || !mobile) { showToast('⚠️ Receiver Name and Mobile are required'); return; }
   
   $('epod-btn').disabled = true; $('epod-btn').textContent = 'Uploading...';
+  
+  const notesString = `Receiver: ${name} | Designation: ${desig || 'N/A'} | Mobile: ${mobile} (Signed via Driver App)`;
   
   try {
     await sb.patch(`jobs?job_code=eq.${encodeURIComponent(currentJob.job_code)}`, {
       status: 'epod_done',
       epod_client_done: true,
       epod_timestamp: new Date().toISOString(),
-      epod_notes: `Receiver: ${name} (Signed via Driver App)`
+      epod_notes: notesString
     });
     currentJob.status = 'epod_done';
     renderTrip();
