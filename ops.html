@@ -400,7 +400,7 @@ function topbarRight(view){
     rst.textContent='🔄 RST';
     wrap.append(rb,rst);
   }
-  const x=el('button',{class:'switch-btn',onclick:()=>{state.view='login';state.sub=null;state.vendor_id=null;stopTracking();render();}});
+  const x=el('button',{class:'switch-btn',onclick:()=>{state.view='login';state.sub=null;state.vendor_id=null;sessionStorage.removeItem('kasper_ops_view');stopTracking();render();}});
   x.style.color=C.red;x.textContent='⏏️';
   wrap.append(x);
   return wrap;
@@ -439,7 +439,9 @@ function renderLogin(){
     e.preventDefault();
     state.vendor_id = '11111111-1111-1111-1111-111111111111';
     state.view = roleSelect1.value;
-    state.sub = null; loadJobs(); loadVendors(); checkSchedule(); render();
+    state.sub = null;
+    sessionStorage.setItem('kasper_ops_view', state.view);
+    loadJobs(); loadVendors(); checkSchedule(); render();
   };
   const id1=el('input',{type:'text',placeholder:'Staff ID or Email',value:'ops@kasper.ae',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'12px'}});
   const pw1=el('input',{type:'password',placeholder:'Password',value:'12345',style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'12px'}});
@@ -1568,6 +1570,12 @@ function render(){
 }
 
 // ── Boot ─────────────────────────────────────────────────────────
+const savedView = sessionStorage.getItem('kasper_ops_view');
+if(savedView && savedView !== 'login') {
+  state.view = savedView;
+  state.vendor_id = '11111111-1111-1111-1111-111111111111';
+  loadJobs(); loadVendors(); checkSchedule();
+}
 render();
 if(schedIv)clearInterval(schedIv);
 schedIv=setInterval(checkSchedule,60000);
