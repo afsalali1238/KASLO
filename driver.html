@@ -482,7 +482,7 @@ async function initDriverApp() {
   } else {
     $('app').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading Driver Portal...</div>';
     try {
-      const rows = await sb.get(\`jobs?driver_name=not.is.null&select=driver_name\`);
+      const rows = await sb.get(`jobs?driver_name=not.is.null&select=driver_name`);
       const uniqueDrivers = [...new Set((rows||[]).map(r => r.driver_name))].sort();
       state.fleet = uniqueDrivers;
     } catch(e) {
