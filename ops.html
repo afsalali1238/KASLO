@@ -149,6 +149,13 @@ async function pushGPS(lat,lng){
   }catch(e){console.warn('GPS push failed',e);}
 }
 
+function timeFormat(iso) {
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  return d.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true});
+}
+
 function startTracking(){
   if(state.tracking) return;
   if(navigator.geolocation){
@@ -818,8 +825,13 @@ function renderOpsDashboard(){
   filteredJobs.forEach((j,i)=>{
     const r=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:i<filteredJobs.length-1?`1px solid ${C.border}`:'none',cursor:'pointer'}});
     r.onclick=()=>{state.selId=j.job_code;state.sub='ops-job-detail';render();};
-    const m=el('div');m.append(txt('div',j.job_code,'mono'),txt('div',j.client_name||j.company_name||'—'));
-    m.children[0].style.cssText=`font-size:13px;font-weight:600;color:${C.text}`;
+    const m=el('div');
+    const tr = el('div', {style:{display:'flex', alignItems:'baseline', gap:'8px'}});
+    const ts = txt('span', timeFormat(j.updated_at || j.created_at));
+    ts.style.cssText = `font-size:10px; color:${C.muted}; font-weight:500`;
+    tr.append(txt('div',j.job_code,'mono'), ts);
+    m.append(tr, txt('div',j.client_name||j.company_name||'—'));
+    m.children[0].children[0].style.cssText=`font-size:13px;font-weight:600;color:${C.text}`;
     m.children[1].style.cssText=`font-size:12px;color:${C.muted}`;
     
     // Action hint — tell ops what's needed
@@ -863,7 +875,12 @@ function renderOpsJobs(){
       const jc=el('div',{class:'card',style:{marginBottom:'8px',cursor:'pointer'}});
       jc.onclick=()=>{state.selId=j.job_code;state.sub='ops-job-detail';render();};
       const jh=el('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:'6px'}});
-      jh.append(txt('span',j.job_code,'mono'),badge(j.status));
+      const jcodeWrap = el('div', {style:{display:'flex', alignItems:'baseline', gap:'8px'}});
+      const jts = txt('span', timeFormat(j.updated_at || j.created_at));
+      jts.style.cssText = `font-size:10px; color:${C.muted}; font-weight:500`;
+      jcodeWrap.append(txt('span',j.job_code,'mono'), jts);
+      jcodeWrap.children[0].style.cssText = `font-size:13px; font-family:monospace; font-weight:600;`;
+      jh.append(jcodeWrap, badge(j.status));
       const rt=j.service_type==='logistics'?`${j.origin||'—'} → ${j.destination||'—'}`:j.equipment_type||'—';
       const jcl=txt('div',j.client_name||j.company_name||'—');jcl.style.cssText=`font-size:13px;color:${C.text};margin-bottom:2px`;
       const jrt=txt('div',rt);jrt.style.cssText=`font-size:12px;color:${C.muted}`;
