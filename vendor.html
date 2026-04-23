@@ -140,6 +140,20 @@ async function loadTab(){
   state.loading=false; render();
 }
 
+function getManualDrivers(){
+  if(!state.vendorId) return [];
+  try{ return JSON.parse(localStorage.getItem('kasper_drivers_'+state.vendorId)) || []; }
+  catch(e){ return []; }
+}
+function addManualDriver(name, phone, plate){
+  if(!state.vendorId) return;
+  const list = getManualDrivers();
+  if(!list.find(d=>d.name===name)){
+    list.push({name, phone, plate});
+    localStorage.setItem('kasper_drivers_'+state.vendorId, JSON.stringify(list));
+  }
+}
+
 // ── CSS injection ─────────────────────────────────────────────────
 const css=`*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:${C.bg};font-family:'Inter',system-ui,-apple-system,sans-serif;color:${C.text}}
@@ -465,8 +479,9 @@ function renderPayments(){
   }
 
   // Summary card
-  const totalOwed=jobs.reduce((sum,j)=>sum+Number(j.vendor_price||0),0);
-  const paidJobs=jobs.filter(j=>j.payment_status==='paid'||j.status==='paid');
+  const safeJobs = jobs || [];
+  const totalOwed=safeJobs.reduce((sum,j)=>sum+Number(j.vendor_price||0),0);
+  const paidJobs=safeJobs.filter(j=>j.payment_status==='paid'||j.status==='paid');
   const totalPaid=paidJobs.reduce((sum,j)=>sum+Number(j.vendor_price||0),0);
   const pending=totalOwed-totalPaid;
 
@@ -543,6 +558,7 @@ async function openVendorAssignModal(job) {
   // Fetch unique drivers
   const rows = await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&driver_name=not.is.null`);
   const fleetMap = new Map();
+  getManualDrivers().forEach(d => fleetMap.set(d.name, {name:d.name, phone:d.phone, plate:d.plate}));
   (Array.isArray(rows)?rows:[]).forEach(j=>{
      if(!fleetMap.has(j.driver_name)) fleetMap.set(j.driver_name, {name:j.driver_name, phone:j.driver_phone, plate:j.vehicle_plate});
   });
@@ -639,20 +655,40 @@ function renderVendorFleet(){
   const jobs=state.fleetJobs||[];
   const d=el('div',{class:'pad'});
 
+  const topRow=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}});
   const hdr=txt('div',`Your Saved Fleet`);
-  hdr.style.cssText=`font-size:15px;font-weight:700;color:${C.text};margin-bottom:16px`;
-  d.append(hdr);
+  hdr.style.cssText=`font-size:15px;font-weight:700;color:${C.text}`;
+  
+  const addBtn=btn('+ Add Driver', C.gold, ()=>{
+    const n = prompt("Enter driver's full name:");
+    if(!n) return;
+    const p = prompt("Enter driver's phone (e.g. 05X XXX XXXX):") || "";
+    const pl = prompt("Enter vehicle plate number:") || "";
+    addManualDriver(n.trim(), p.trim(), pl.trim());
+    render();
+  });
+  addBtn.style.cssText += 'padding:6px 12px;font-size:12px';
+  topRow.append(hdr, addBtn);
+  d.append(topRow);
 
   const seen=new Set();
   const drivers=[];
+  
+  getManualDrivers().forEach(d => {
+    seen.add(d.name);
+    drivers.push({name:d.name, plate:d.plate, phone:d.phone, totalJobs:0, isActive:false});
+  });
+
   jobs.filter(j=>j.driver_name).forEach(j=>{
     if(!seen.has(j.driver_name)){
       seen.add(j.driver_name);
       drivers.push({name:j.driver_name, plate:j.vehicle_plate, phone:j.driver_phone, totalJobs:0, isActive:false});
     }
     const drv=drivers.find(x=>x.name===j.driver_name);
-    drv.totalJobs++;
-    if(['assigned','in_transit'].includes(j.status)) drv.isActive=true;
+    if(drv) {
+      drv.totalJobs++;
+      if(['assigned','in_transit'].includes(j.status)) drv.isActive=true;
+    }
   });
 
   if(!drivers.length){
