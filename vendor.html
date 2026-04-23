@@ -150,7 +150,8 @@ async function addManualDriver(name, phone, plate){
     driver_name: name,
     driver_phone: phone,
     vehicle_plate: plate,
-    status: 'fleet_seed'
+    status: 'fleet_seed',
+    service_type: 'logistics'
   });
   await loadFleetHistory();
   render();
