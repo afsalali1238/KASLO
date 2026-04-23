@@ -81,11 +81,13 @@ const KasperDB = {
 
   // ── Approve link builder ──────────────────────────────────────
   approveLink(jobCode) {
-    return `${KASPER_CONFIG.siteUrl}/approve.html?job_id=${encodeURIComponent(jobCode)}`;
+    const isLocal = window.location.pathname.endsWith('.html');
+    return `${KASPER_CONFIG.siteUrl}/${isLocal ? 'approve.html' : 'approve'}?job_id=${encodeURIComponent(jobCode)}`;
   },
 
   trackLink(jobCode) {
-    return `${KASPER_CONFIG.siteUrl}/track-result.html?job_id=${encodeURIComponent(jobCode)}`;
+    const isLocal = window.location.pathname.endsWith('.html');
+    return `${KASPER_CONFIG.siteUrl}/${isLocal ? 'track-result.html' : 'track-result'}?job_id=${encodeURIComponent(jobCode)}`;
   },
 };
 

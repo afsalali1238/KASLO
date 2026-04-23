@@ -23,26 +23,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── URL params ──────────────────────────────────────────────
   const params  = new URLSearchParams(window.location.search);
   const jobCode = params.get('job_id');
-  const page    = window.location.pathname.split('/').pop();
+  const path = window.location.pathname.toLowerCase();
+  
+  // Determine page safely regardless of .html extension
+  let page = 'unknown';
+  if (path.includes('book')) page = 'book.html';
+  else if (path.includes('approve')) page = 'approve.html';
+  else if (path.includes('track-result')) page = 'track-result.html';
+  else if (path.includes('track')) page = 'track.html';
+  else if (path.includes('ops')) page = 'ops.html';
+  else if (path.includes('vendor')) page = 'vendor.html';
+  else if (path.includes('driver')) page = 'driver.html';
 
   // ── Force Next Step pipeline (shared by all pages) ──────────
   function fmtStatus(s) {
     const map = {
-      'enquiry':'Enquiry','quoted':'Quoted','po_pending':'PO Verification',
-      'confirmed':'Confirmed','assigned':'Assigned','in_transit':'In Transit',
+      'enquiry':'Enquiry','rfq_sent':'RFQ Sent','quoted':'Quoted','po_pending':'PO Verification',
+      'confirmed':'Confirmed','vendor_po_sent':'Vendor PO','assigned':'Assigned','in_transit':'In Transit',
       'delivered':'Delivered','epod_pending':'ePOD Pending','epod_done':'ePOD Signed',
       'invoiced':'Invoiced','paid':'Paid'
     };
     return map[s] || s;
   }
-  const PIPELINE=['enquiry','quoted','po_pending','confirmed','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
+  const PIPELINE=['enquiry','rfq_sent','quoted','po_pending','confirmed','vendor_po_sent','assigned','in_transit','delivered','epod_pending','epod_done','invoiced','paid'];
   function getNextStatus(current){ const i=PIPELINE.indexOf(current); return i>=0 && i<PIPELINE.length-1 ? PIPELINE[i+1] : null; }
   async function forceNextStep(job){
     const ns=getNextStatus(job.status);
     if(!ns) return;
     const extras={};
-    if(ns==='quoted') extras.quoted_price=job.quoted_price||2500;
+    if(ns==='rfq_sent') { /* just status advance */ }
+    if(ns==='quoted'){ extras.quoted_price=job.quoted_price||2500; extras.vendor_price=job.vendor_price||1800; }
     if(ns==='confirmed'){ extras.approval_timestamp=new Date().toISOString(); extras.quoted_price=job.quoted_price||2500; }
+    if(ns==='vendor_po_sent'){ extras.vendor_po_sent=true; }
     if(ns==='assigned'){ extras.driver_name='Ahmed Al Rashidi'; extras.vehicle_plate='Dubai A 12345'; extras.driver_phone='+971501234567'; }
     if(ns==='in_transit'){ extras.driver_lat=25.2048; extras.driver_lng=55.2708; extras.driver_location_updated_at=new Date().toISOString(); }
     await KasperDB.updateJob(job.job_code, {status:ns, ...extras});
@@ -140,6 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               origin:      form.querySelector('[name="origin"]')?.value,
               destination: form.querySelector('[name="destination"]')?.value,
               cargo_type:  form.querySelector('[name="cargo_type"]')?.value,
+              weight:      form.querySelector('[name="weight"]')?.value || null,
               pickup_date: form.querySelector('[name="pickup_date"]')?.value || null,
             };
           }
@@ -155,7 +168,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           // Redirect to track after 2.5s
           setTimeout(() => {
-            window.location.href = `track-result.html?job_id=${encodeURIComponent(jobCode)}`;
+            const isLocal = window.location.pathname.endsWith('.html');
+            window.location.href = `${isLocal ? 'track-result.html' : 'track-result'}?job_id=${encodeURIComponent(jobCode)}`;
           }, 2500);
 
         } catch (err) {
@@ -172,7 +186,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // APPROVE PAGE
   // ════════════════════════════════════════════════════════════
   if (page === 'approve.html') {
-    if (!jobCode) { window.location.href = '404.html'; return; }
+    const isLocal = window.location.pathname.endsWith('.html');
+    const notFoundUrl = isLocal ? '404.html' : '404';
+
+    if (!jobCode) { window.location.href = notFoundUrl; return; }
 
     const approveBtn = document.getElementById('btn-approve-quote');
     if (!approveBtn) return;
@@ -182,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const job = await KasperDB.getJob(jobCode);
-      if (!job) { window.location.href = '404.html'; return; }
+      if (!job) { window.location.href = notFoundUrl; return; }
 
       // Populate UI
       const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
@@ -280,27 +297,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ════════════════════════════════════════════════════════════
   // TRACK SEARCH PAGE
   // ════════════════════════════════════════════════════════════
-  if (page === 'track.html') {
+  const searchForm = document.getElementById('search-job-form');
+  if (searchForm) {
     // Pre-fill from localStorage if client just booked
     const lastJob = localStorage.getItem('kasper_last_job');
     const input = document.getElementById('job-search-input');
     if (lastJob && input) input.value = lastJob;
 
-    const form = document.getElementById('search-job-form');
-    if (form) {
-      form.addEventListener('submit', e => {
-        e.preventDefault();
-        const val = input?.value?.trim().toUpperCase();
-        if (val) window.location.href = `track-result.html?job_id=${encodeURIComponent(val)}`;
-      });
-    }
+    searchForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const val = input?.value?.trim().toUpperCase();
+      // Handle extension stripping by navigating based on current host URL structure
+      if (val) {
+        if(window.location.pathname.endsWith('.html')) {
+          window.location.href = `track-result.html?job_id=${encodeURIComponent(val)}`;
+        } else {
+          // If server suppresses extensions, navigate without it
+          window.location.href = `track-result?job_id=${encodeURIComponent(val)}`;
+        }
+      }
+    });
   }
 
   // ════════════════════════════════════════════════════════════
   // TRACK RESULT PAGE
   // ════════════════════════════════════════════════════════════
-  if (page === 'track-result.html') {
-    if (!jobCode) { window.location.href = 'track.html'; return; }
+  if (page === 'track-result.html' || document.getElementById('tracking-result-UI')) {
+    if (!jobCode) { window.location.href = 'track'; return; }
 
     try {
       const job = await KasperDB.getJob(jobCode);
@@ -329,7 +352,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       setText('tr-service', job.service_type === 'equipment' ? 'Equipment Rental' : 'Freight Booking');
       setText('tr-route-detail', route);
       setText('tr-date', job.pickup_date || job.start_date || '—');
-      setText('tr-cargo', job.cargo_type || job.equipment_type || '—');
+      let cargoStr = job.cargo_type || job.equipment_type || '—';
+      if (job.weight) cargoStr += ` (${job.weight})`;
+      setText('tr-cargo', cargoStr);
       setText('tr-rate', job.quoted_price ? `AED ${Number(job.quoted_price).toLocaleString()}` : 'Pending');
       setText('tr-status', fmtStatus(job.status));
 
@@ -340,7 +365,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (qBanner && qBtn) {
           qBanner.style.display = 'block';
           qBtn.addEventListener('click', () => {
-            window.location.href = `approve.html?job_id=${encodeURIComponent(job.job_code)}`;
+            const isLocal = window.location.pathname.endsWith('.html');
+            window.location.href = `${isLocal ? 'approve.html' : 'approve'}?job_id=${encodeURIComponent(job.job_code)}`;
           });
         }
       }
@@ -352,10 +378,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         setText('tr-driver-phone', job.driver_phone || '—');
       }
 
-      // Timeline
+      // Timeline — map internal marketplace states to client-visible states
       const statusOrder = ['enquiry','quoted','confirmed','assigned','in_transit','delivered','epod_pending','invoiced','paid'];
       const stepIds     = ['ts-enq','ts-quo','ts-con','ts-ass','ts-int','ts-del','ts-epo','ts-inv','ts-pai'];
-      const curIdx      = statusOrder.indexOf(job.status);
+      // Map internal states to client-facing equivalents
+      const clientStatus = {'rfq_sent':'enquiry','vendor_po_sent':'confirmed'}[job.status] || job.status;
+      const curIdx      = statusOrder.indexOf(clientStatus);
 
       stepIds.forEach((id, i) => {
         const el = document.getElementById(id);

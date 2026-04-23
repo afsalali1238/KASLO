@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#10B981">
+<title>Kasper Driver Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Base Dark Mode ── */
+:root {
+  --bg-main: #131313; --bg-surf: #1b1c1c; --bg-surf2: #1f2020;
+  --teal: #00F2FF; --teal-glow: rgba(0, 242, 255, 0.4);
+  --green: #10B981; --amber: #FF6B00; --gold: #F59E0B; --red: #EF4444;
+  --text-main: #e5e2e1; --text-muted: #8c90a0;
+  --border: rgba(66,71,84,0.3);
+  --font-body: 'Inter', sans-serif; --font-head: 'Space Grotesk', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font-body); background:var(--bg-main); color:var(--text-main); line-height:1.5; padding-bottom:env(safe-area-inset-bottom); }
+
+/* ── UI Elements ── */
+.nav { display:flex; align-items:center; justify-content:center; padding:16px; background:var(--bg-surf); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10; }
+.nav-title { font-family:var(--font-head); font-weight:700; font-size:1.2rem; letter-spacing:1px; color:#fff; }
+.nav-title span { color:var(--green); }
+
+.container { padding:20px; max-width:600px; margin:0 auto; }
+.card { background:var(--bg-surf); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:20px; }
+.card h2 { font-family:var(--font-head); font-size:1.1rem; margin-bottom:16px; color:#fff; }
+
+.btn { display:block; width:100%; padding:14px; border-radius:8px; font-family:var(--font-head); font-weight:600; font-size:1rem; text-align:center; cursor:pointer; border:none; transition:all 0.2s; }
+.btn-primary { background:var(--green); color:#000; }
+.btn-primary:active { transform:scale(0.98); background:#0ca070; }
+.btn-primary:disabled { background:var(--bg-surf2); color:var(--text-muted); cursor:not-allowed; }
+
+.input-group { margin-bottom:16px; }
+.input-group label { display:block; font-size:0.85rem; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
+.input-field { width:100%; padding:14px; background:var(--bg-surf2); border:1px solid var(--border); border-radius:8px; color:#fff; font-family:var(--font-body); font-size:1rem; transition:border-color 0.2s; }
+.input-field:focus { outline:none; border-color:var(--green); }
+
+.lbl { font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; display:block; }
+.val { font-size:1rem; color:#fff; margin-bottom:12px; font-weight:500; }
+
+.tag { display:inline-block; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:600; font-family:var(--font-head); text-transform:uppercase; }
+
+/* ePOD Signature Pad */
+.canvas-wrapper { width:100%; aspect-ratio:2/1; background:#fff; border-radius:8px; border:2px solid var(--border); margin-bottom:10px; overflow:hidden; touch-action:none; }
+canvas { width:100%; height:100%; cursor:crosshair; }
+.clear-sig { background:transparent; color:var(--text-muted); border:1px solid var(--border); padding:8px; border-radius:6px; width:auto; display:inline-block; font-size:0.8rem; margin-bottom:20px; }
+
+#toast-container { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:100; display:flex; flex-direction:column; gap:10px; width:90%; max-width:400px; }
+.toast { background:var(--bg-surf2); border-left:4px solid var(--green); padding:16px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.5); font-size:0.9rem; animation:slideUp 0.3s ease; }
+@keyframes slideUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-title"><span>⬢</span> KASPER DRIVER</div>
+</div>
+
+<div class="container" id="app">
+  <!-- Dynamic Content -->
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+const SUPA_URL  = 'https://qxnggifmmozngzguteen.supabase.co';
+const SUPA_KEY  = 'sb_publishable_gUOvqITZjbThOGB6_ZBadg_I7mNT6kM';
+
+const sb = {
+  h: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+  async get(q)    { const r = await fetch(`${SUPA_URL}/rest/v1/${q}`, { headers: this.h }); return r.json(); },
+  async patch(q,d){ return fetch(`${SUPA_URL}/rest/v1/${q}`, { method:'PATCH', headers:{...this.h,'Prefer':'return=minimal'}, body:JSON.stringify(d) }); },
+};
+
+const C = { green: '#10B981', amber: '#FF6B00', default: '#3F3F46', bgSurf2: '#1f2020' };
+// ── State ──────────────────────────────────────────────────────────
+const FLEET = ['Ahmed Al Rashidi', 'Mohammed Hassan', 'Sanjay Kumar', 'Usman Ali', 'Khan Transport LLC'];
+let state = { driverName: null, jobs: [] };
+let currentJob = null;
+
+// ── DOM Helpers ───────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function showToast(msg) {
+  const c = $('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast'; t.innerHTML = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── Render Logic ──────────────────────────────────────────────────
+function renderLogin() {
+  let opts = FLEET.map(name => `<option value="${name}">${name}</option>`).join('');
+  $('app').innerHTML = `
+    <div class="card" style="margin-top:20px;">
+      <h2>Driver Login</h2>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px;">
+        Select your name to access your assigned trips.
+      </p>
+      <div class="input-group">
+        <label>Driver Identity</label>
+        <select id="driver-select" class="input-field" style="appearance:none;">
+          <option value="" disabled selected>Select Driver Name...</option>
+          ${opts}
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="window.driverLogin()" id="login-btn">Log In</button>
+    </div>
+  `;
+}
+
+window.driverLogin = async () => {
+  const name = $('driver-select').value;
+  if (!name) return showToast('⚠️ Please select a driver');
+  
+  $('login-btn').disabled = true; $('login-btn').textContent = 'Loading...';
+  state.driverName = name;
+  await loadDriverJobs();
+};
+
+async function loadDriverJobs() {
+  try {
+    const rows = await sb.get(`jobs?driver_name=eq.${encodeURIComponent(state.driverName)}&order=created_at.desc`);
+    state.jobs = rows || [];
+    renderDashboardList();
+  } catch(e) {
+    showToast('⚠️ Error loading jobs');
+    renderLogin();
+  }
+}
+
+function renderDashboardList() {
+  const myJobs = state.jobs;
+  const active = myJobs.find(j => j.status === 'in_transit');
+  const epodPending = myJobs.filter(j => j.status === 'delivered');
+  
+  let html = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h2 style="font-family:var(--font-head); font-size:1.2rem;">Fleet Dashboard</h2>
+      <button class="btn" style="width:auto; padding:8px 12px; background:var(--bg-surf2); border:1px solid var(--border); font-size:0.8rem;" onclick="location.reload()">Log Out</button>
+    </div>
+  `;
+  
+  // 1. Driver Profile Card + Location Settings
+  html += `
+    <div class="card" style="border-color:var(--teal); background:rgba(0, 242, 255, 0.05);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <div style="font-size:1.1rem; font-weight:700; color:var(--text-main);">${state.driverName}</div>
+          <div style="font-size:0.85rem; color:var(--text-muted);">${state.driverName === 'Usman Ali' ? 'Dubai D 76543' : state.driverName === 'Ahmed Al Rashidi' ? 'Dubai A 12345' : 'Fleet Vehicle'}</div>
+        </div>
+        <span class="tag" style="background:rgba(0, 242, 255, 0.12); color:var(--teal); border:1px solid rgba(0,242,255,0.2);">On Duty</span>
+      </div>
+      
+      <div style="display:flex; align-items:center; border:1px solid var(--border); padding:8px 12px; border-radius:30px; margin-bottom:12px;">
+        <div style="width:8px; height:8px; border-radius:50%; background:var(--teal); box-shadow:0 0 6px var(--teal); margin-right:8px;"></div>
+        <div style="font-size:0.8rem; font-weight:600; color:var(--teal);">Location Auto-Sharing Active</div>
+      </div>
+      
+      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">
+        Auto-share: 06:00 – 20:00 &nbsp;&nbsp; <span style="color:var(--teal);">● In window</span>
+      </div>
+      
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1; background:var(--red); padding:10px; font-size:0.9rem;" onclick="showToast('Trip Ended')">■ End Comm</button>
+        <button class="btn" style="flex:1; background:transparent; border:1px solid var(--teal); color:var(--teal); padding:10px; font-size:0.9rem;" onclick="showToast('Opening Settings...')">⚙ Schedule</button>
+      </div>
+    </div>
+  `;
+
+  // 2. Active Job Pinned
+  if (active) {
+    const route = active.service_type === 'equipment' ? active.equipment_type : `${active.origin||''} → ${active.destination||''}`;
+    html += `
+      <div class="card" style="border-color:var(--teal); cursor:pointer;" onclick="openTrip('${active.job_code}')">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:0.75rem; font-weight:700; color:var(--teal);">ACTIVE JOB</span>
+          <span class="tag" style="background:rgba(0,242,255,0.12); color:var(--teal);">IN TRANSIT</span>
+        </div>
+        <div style="font-family:monospace; font-weight:700; font-size:1rem; margin-bottom:4px;">${active.job_code}</div>
+        <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:2px;">${active.client_name || 'Client'}</div>
+        <div style="font-size:0.85rem; color:var(--text-muted);">${route}</div>
+        <div style="font-size:0.75rem; font-weight:700; color:var(--teal); margin-top:10px;">Tap to manage →</div>
+      </div>
+    `;
+  } else {
+    html += `<div class="card" style="text-align:center; color:var(--text-muted); padding:20px;">No active trip right now</div>`;
+  }
+
+  // 3. ePOD Alerts
+  if (epodPending.length > 0) {
+    html += `
+      <div class="card" style="border-color:var(--amber); background:rgba(255, 107, 0, 0.05);">
+        <div style="font-size:0.85rem; font-weight:700; color:var(--amber); margin-bottom:10px;">
+          ⚠ ${epodPending.length} delivery awaiting ePOD sign-off
+        </div>
+    `;
+    epodPending.forEach(j => {
+      html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div>
+            <div style="font-family:monospace; font-size:0.85rem;">${j.job_code}</div>
+            <div style="font-size:0.85rem; color:var(--text-muted);">${j.client_name}</div>
+          </div>
+          <button class="btn" style="width:auto; padding:6px 14px; background:var(--teal); color:#000; font-size:0.85rem;" onclick="openTrip('${j.job_code}')">Sign ePOD</button>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  // 4. All Jobs List
+  html += `
+    <div class="card">
+      <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">All My Jobs</div>
+  `;
+  
+  if (myJobs.length === 0) {
+    html += `<div style="text-align:center; color:var(--text-muted); font-size:0.9rem;">No assignments</div>`;
+  } else {
+    myJobs.forEach((j, i) => {
+      let bCol = C.default;
+      if (j.status === 'in_transit') bCol = C.amber;
+      if (j.status === 'delivered') bCol = C.green;
+      
+      html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:${i < myJobs.length-1 ? '1px solid var(--border)' : 'none'}; cursor:pointer;" onclick="openTrip('${j.job_code}')">
+          <div>
+            <div style="font-family:monospace; font-size:0.9rem;">${j.job_code}</div>
+            <div style="font-size:0.85rem; color:var(--text-muted);">${j.client_name || 'Client'}</div>
+          </div>
+          <span class="tag" style="background:${bCol}22; color:${bCol}; border:1px solid ${bCol}66;">${j.status.toUpperCase().replace('_',' ')}</span>
+        </div>
+      `;
+    });
+  }
+  html += `</div>`;
+
+  $('app').innerHTML = html;
+}
+
+window.openTrip = (jobCode) => {
+  currentJob = state.jobs.find(j => j.job_code === jobCode);
+  renderTrip();
+};
+
+window.searchJob = async () => {
+  const input = $('job-code-input').value.trim();
+  if (!input) return;
+  try {
+    const rows = await sb.get(`jobs?job_code=eq.${encodeURIComponent(input)}`);
+    if(rows && rows.length > 0) {
+      currentJob = rows[0];
+      renderTrip();
+    }
+  } catch(e) {
+    showToast('⚠️ Error connecting to server');
+  }
+};
+
+function renderTrip() {
+  const j = currentJob;
+  
+  // Status badge config
+  let bTitle = 'PENDING'; let bCol = C.default;
+  if(j.status === 'assigned') { bTitle = 'ASSIGNED'; bCol = C.amber; }
+  else if(j.status === 'in_transit') { bTitle = 'IN TRANSIT'; bCol = C.amber; }
+  else if(j.status === 'delivered') { bTitle = 'ARRIVED'; bCol = C.green; }
+  else if(['epod_pending','epod_done','invoiced','paid'].includes(j.status)) { bTitle = 'COMPLETED'; bCol = C.green; }
+  
+  let html = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div>
+        <div class="lbl">JOB REFERENCE</div>
+        <div style="font-size:1.3rem; font-weight:700;">${j.job_code}</div>
+      </div>
+      <div class="tag" style="background:${bCol}22; color:${bCol}; border:1px solid ${bCol}66;">${bTitle}</div>
+    </div>
+    
+    <div class="card">
+      <h2>Routing Details</h2>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <span class="lbl">FROM</span>
+          <span class="val">${j.origin || j.service_type.toUpperCase()}</span>
+        </div>
+        <div>
+          <span class="lbl">TO / SITE</span>
+          <span class="val">${j.destination || j.site_address || 'TBD'}</span>
+        </div>
+        ${j.cargo_type ? `<div><span class="lbl">CARGO</span><span class="val">${j.cargo_type}</span></div>` : ''}
+        ${j.equipment_type ? `<div><span class="lbl">EQUIPMENT</span><span class="val">${j.equipment_type}</span></div>` : ''}
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>Site Contact</h2>
+      <div class="lbl">NAME</div><div class="val">${j.client_name}</div>
+      <div class="lbl">PHONE</div>
+      <div class="val" style="display:flex; justify-content:space-between; align-items:center;">
+        ${j.client_phone}
+        ${j.client_phone ? `<a href="tel:${j.client_phone}" style="color:var(--green); text-decoration:none; font-size:0.9rem;">📞 Call</a>` : ''}
+      </div>
+    </div>
+  `;
+  
+  // Action Block
+  html += `<div id="action-block" style="margin-top:20px;"></div>`;
+  html += `<button class="btn clear-sig" style="width:100%; text-align:center; border:none;" onclick="window.exitJob()">Back to List</button>`;
+  
+  $('app').innerHTML = html;
+  renderActionBlock();
+}
+
+window.exitJob = () => {
+  currentJob = null;
+  if(state.driverName) renderDashboardList();
+  else location.reload(); // if single-trip mode, reload to clear
+};
+
+function renderActionBlock() {
+  const j = currentJob;
+  const ab = $('action-block');
+  
+  if (['enquiry','rfq_sent','quoted','po_pending','confirmed','vendor_po_sent'].includes(j.status)) {
+    ab.innerHTML = `
+      <div class="card text-center" style="border-color:${C.amber}; background:rgba(255,107,0,0.1);">
+        <p style="color:var(--amber);">Job is pending final OPS dispatch. You cannot start transit yet.</p>
+      </div>`;
+      
+  } else if (j.status === 'assigned') {
+    ab.innerHTML = `
+      <button class="btn btn-primary" onclick="window.updateStatus('in_transit', 'Starting Transit & GPS Tracker...')" style="font-size:1.2rem; padding:18px;">
+        🚚 START TRANSIT
+      </button>
+      <p style="color:var(--text-muted); font-size:0.8rem; text-align:center; margin-top:12px;">Tap when moving. Client will see your live ETA.</p>
+    `;
+    
+  } else if (j.status === 'in_transit') {
+    ab.innerHTML = `
+      <button class="btn btn-primary" onclick="window.updateStatus('delivered', 'Confirming Arrival...')" style="font-size:1.2rem; padding:18px; background:${C.gold}; color:#000;">
+        📍 ARRIVED AT DESTINATION
+      </button>
+      <p style="color:var(--text-muted); font-size:0.8rem; text-align:center; margin-top:12px;">GPS Tracking is active. Tap when you reach the site.</p>
+    `;
+  } else if (j.status === 'delivered') {
+    ab.innerHTML = `
+      <div class="card" style="border-color:var(--green); box-shadow:0 0 15px rgba(16,185,129,0.1);">
+        <h2 style="color:var(--green);">Confirm Delivery / ePOD</h2>
+        
+        <div class="input-group">
+          <label>Receiver Name</label>
+          <input type="text" id="epod-name" class="input-field" placeholder="Full Name">
+        </div>
+        
+        <div class="input-group">
+          <label>Signature</label>
+          <div class="canvas-wrapper"><canvas id="sig-pad"></canvas></div>
+          <button class="btn clear-sig" onclick="window.clearSig()">Clear Signature</button>
+        </div>
+        
+        <button class="btn btn-primary" onclick="window.submitEpod()" id="epod-btn">
+          SUBMIT PROOF OF DELIVERY
+        </button>
+      </div>
+    `;
+    // Initialize signature pad quickly after render
+    setTimeout(initSignaturePad, 10);
+    
+  } else {
+    // Already done
+    ab.innerHTML = `
+      <div class="card text-center" style="border-color:var(--green); background:rgba(16,185,129,0.1); display:flex; flex-direction:column; align-items:center;">
+        <span style="font-size:3rem;">✅</span>
+        <h2 style="color:var(--green); margin-top:10px;">Delivery Completed</h2>
+        <p style="color:var(--text-muted);">Thank you. ePOD has been sent to Kasper Ops.</p>
+      </div>`;
+  }
+}
+
+// ── Actions ───────────────────────────────────────────────────────
+window.updateStatus = async (newStatus, msg) => {
+  showToast(`⏳ ${msg}`);
+  const payload = { status: newStatus };
+  
+  // Attach mock GPS coordinates if starting transit
+  if(newStatus === 'in_transit') {
+    payload.driver_lat = 25.2048; // Mock Dubai Lat
+    payload.driver_lng = 55.2708; // Mock Dubai Lng
+    payload.driver_location_updated_at = new Date().toISOString();
+  }
+  
+  try {
+    await sb.patch(`jobs?job_code=eq.${encodeURIComponent(currentJob.job_code)}`, payload);
+    // Overwrite local object
+    currentJob.status = newStatus;
+    renderTrip();
+    
+    if(newStatus === 'in_transit') showToast('✅ Transit Started');
+    if(newStatus === 'delivered') showToast('✅ Arrived');
+  } catch(e) {
+    showToast('⚠️ Error updating status');
+  }
+};
+
+let painting = false, ctx, pc;
+function initSignaturePad() {
+  const c = $('sig-pad'); if(!c) return;
+  ctx = c.getContext('2d');
+  
+  // Resize based on wrapper
+  c.width = c.parentElement.clientWidth;
+  c.height = c.parentElement.clientHeight;
+  
+  const getPos = e => {
+    const r = c.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  };
+  
+  const draw = e => {
+    if(!painting) return;
+    const { x, y } = getPos(e);
+    ctx.lineWidth=3; ctx.lineCap='round'; ctx.strokeStyle='#000';
+    ctx.lineTo(x,y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x,y);
+  };
+
+  c.onmousedown = e => { painting=true; draw(e); };
+  c.onmouseup   = () => { painting=false; ctx.beginPath(); };
+  c.onmouseleave= () => { painting=false; ctx.beginPath(); };
+  c.onmousemove = draw;
+  
+  c.ontouchstart = e => { painting=true; draw(e); e.preventDefault(); };
+  c.ontouchend   = () => { painting=false; ctx.beginPath(); };
+  c.ontouchmove  = e => { draw(e); e.preventDefault(); };
+}
+
+window.clearSig = () => {
+  const c = $('sig-pad'); if(!c||!ctx) return;
+  ctx.clearRect(0,0,c.width,c.height);
+};
+
+window.submitEpod = async () => {
+  const name = $('epod-name').value.trim();
+  if(!name) { showToast('⚠️ Receiver Name is required'); return; }
+  
+  $('epod-btn').disabled = true; $('epod-btn').textContent = 'Uploading...';
+  
+  try {
+    await sb.patch(`jobs?job_code=eq.${encodeURIComponent(currentJob.job_code)}`, {
+      status: 'epod_done',
+      epod_client_done: true,
+      epod_timestamp: new Date().toISOString(),
+      epod_notes: `Receiver: ${name} (Signed via Driver App)`
+    });
+    currentJob.status = 'epod_done';
+    renderTrip();
+    showToast('✅ ePOD Successfully Uploaded');
+  } catch(e) {
+    showToast('⚠️ Failed to upload ePOD');
+    $('epod-btn').disabled = false; $('epod-btn').textContent = 'SUBMIT PROOF OF DELIVERY';
+  }
+};
+
+// ── Init ──────────────────────────────────────────────────────────
+const params = new URLSearchParams(window.location.search);
+const autoJobId = params.get('job_id');
+if(autoJobId) {
+  $('app').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading trip...</div>';
+  if(!$('job-code-input')) {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden'; hidden.id = 'job-code-input';
+    document.body.appendChild(hidden);
+  }
+  $('job-code-input').value = autoJobId;
+  window.searchJob();
+} else {
+  renderLogin();
+}
+</script>
+</body>
+</html>

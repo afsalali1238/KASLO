@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#F59E0B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Kasper Vendor Portal</title>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ════════════════════════════════════════════════════════════════
+// KASPER VENDOR PORTAL — External vendor companies
+// ════════════════════════════════════════════════════════════════
+
+// ── CONFIG ────────────────────────────────────────────────────────
+const SUPA_URL  = 'https://qxnggifmmozngzguteen.supabase.co';
+const SUPA_KEY  = 'sb_publishable_gUOvqITZjbThOGB6_ZBadg_I7mNT6kM';
+const SITE_URL  = window.location.origin;
+
+// ── Supabase helpers ──────────────────────────────────────────────
+const sb = {
+  h: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+  async get(q)    { const r = await fetch(`${SUPA_URL}/rest/v1/${q}`, { headers: this.h }); return r.json(); },
+  async post(t,d) { const r = await fetch(`${SUPA_URL}/rest/v1/${t}`, { method:'POST', headers:{...this.h,'Prefer':'return=representation'}, body:JSON.stringify(d) }); return r.json(); },
+  async patch(q,d){ return fetch(`${SUPA_URL}/rest/v1/${q}`, { method:'PATCH', headers:{...this.h,'Prefer':'return=minimal'}, body:JSON.stringify(d) }); },
+};
+
+// ── Design tokens (same dark palette as ops.html) ─────────────────
+const C = {
+  bg:'#131313', surf:'#1b1c1c', surf2:'#1f2020',
+  teal:'#00F2FF', tealDim:'rgba(0,242,255,.12)',
+  amber:'#FF6B00', amberDim:'rgba(255,107,0,.12)',
+  gold:'#F59E0B', goldDim:'rgba(245,158,11,.12)',
+  green:'#10B981', greenDim:'rgba(16,185,129,.12)',
+  red:'#E24B4A', text:'#e5e2e1', muted:'#8c90a0', border:'rgba(66,71,84,0.3)',
+};
+
+const SL = {
+  label:{sent:'Pending',quoted:'Quoted',accepted:'Accepted',rejected:'Rejected',
+    vendor_po_sent:'PO Received',assigned:'Assigned',in_transit:'In Transit',
+    delivered:'Delivered',epod_pending:'ePOD Pending',invoiced:'Invoiced',paid:'Paid'},
+  color:{sent:C.amber,quoted:C.teal,accepted:C.green,rejected:C.red,
+    vendor_po_sent:C.gold,assigned:C.amber,in_transit:C.teal,
+    delivered:'#9F7AEA',epod_pending:C.amber,invoiced:'#afc6ff',paid:C.teal},
+};
+
+// ── App state ─────────────────────────────────────────────────────
+let state = {
+  view:'login', tab:'rfqs', sub:null, selId:null,
+  vendorId:null, vendorName:'Vendor',
+  rfqs:[], jobs:[], loading:false,
+};
+
+// ── DOM helpers ───────────────────────────────────────────────────
+const el=(tag,attrs={})=>{
+  const e=document.createElement(tag);
+  for(const[k,v] of Object.entries(attrs)){
+    if(k==='class')e.className=v;
+    else if(k.startsWith('on'))e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==='style'&&typeof v==='object')Object.assign(e.style,v);
+    else e.setAttribute(k,v);
+  }
+  return e;
+};
+const txt=(tag,text,cls='')=>{ const e=el(tag,{class:cls}); e.textContent=text; return e; };
+
+const badge=(s)=>{
+  const col=SL.color[s]||C.muted;
+  const e=el('span',{class:'tag',style:{background:col+'33',color:col,border:`1px solid ${col}55`}});
+  e.textContent=SL.label[s]||s; return e;
+};
+
+const btn=(text,bg,onClick,disabled=false)=>{
+  const b=el('button',{class:'btn',onclick:disabled?null:onClick});
+  b.textContent=text; b.disabled=disabled;
+  b.style.cssText=`background:${disabled?C.border:bg};color:#fff;border-color:${disabled?C.border:bg};opacity:${disabled?.6:1}`;
+  return b;
+};
+
+const outlineBtn=(text,color,onClick)=>{
+  const b=el('button',{class:'btn btn-out',onclick:onClick});
+  b.textContent=text;
+  b.style.cssText=`color:${color};border-color:${color};background:transparent`;
+  return b;
+};
+
+const card=(style='')=>{const d=el('div',{class:'card'}); if(style)d.style.cssText+=style; return d;};
+
+// ── Data loading ──────────────────────────────────────────────────
+async function loadRFQs(){
+  if(!state.vendorId) return;
+  try{
+    const rows=await sb.get(`vendor_rfqs?vendor_id=eq.${state.vendorId}&status=eq.sent&order=created_at.desc`);
+    // For each RFQ, we need the job details — fetch via job_id
+    const rfqs=Array.isArray(rows)?rows:[];
+    // Batch-load job details
+    if(rfqs.length){
+      const jobIds=rfqs.map(r=>r.job_id);
+      const jobs=await sb.get(`jobs?id=in.(${jobIds.join(',')})&order=created_at.desc`);
+      const jobMap=new Map((Array.isArray(jobs)?jobs:[]).map(j=>[j.id,j]));
+      rfqs.forEach(r=>r._job=jobMap.get(r.job_id)||{});
+    }
+    state.rfqs=rfqs;
+  }catch(e){console.error('loadRFQs',e); state.rfqs=[];}
+}
+
+async function loadActiveJobs(){
+  if(!state.vendorId) return;
+  try{
+    const rows=await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=in.(vendor_po_sent,assigned,in_transit,delivered,epod_pending)&order=created_at.desc`);
+    state.jobs=Array.isArray(rows)?rows:[];
+  }catch(e){console.error('loadJobs',e); state.jobs=[];}
+}
+
+async function loadCompletedJobs(){
+  if(!state.vendorId) return;
+  try{
+    const rows=await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=in.(invoiced,paid)&order=created_at.desc`);
+    state.jobs=Array.isArray(rows)?rows:[];
+  }catch(e){console.error('loadJobs',e); state.jobs=[];}
+}
+
+async function loadTab(){
+  state.loading=true; render();
+  if(state.tab==='rfqs') await loadRFQs();
+  else if(state.tab==='jobs') await loadActiveJobs();
+  else if(state.tab==='payments') await loadCompletedJobs();
+  state.loading=false; render();
+}
+
+// ── CSS injection ─────────────────────────────────────────────────
+const css=`*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:${C.bg};font-family:'Inter',system-ui,-apple-system,sans-serif;color:${C.text}}
+#app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:${C.surf};padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid ${C.border};position:sticky;top:0;z-index:20}
+.back-btn{background:none;border:none;color:${C.gold};cursor:pointer;font-size:28px;line-height:1;padding:0}
+.topbar-title{flex:1;font-weight:700;font-size:16px;color:${C.text}}
+.bottom-nav{background:${C.surf};border-top:1px solid ${C.border};display:flex;padding:6px 0;position:sticky;bottom:0}
+.nav-btn{flex:1;background:none;border:none;cursor:pointer;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav-icon{font-size:20px}.nav-label{font-size:10px;font-weight:600}
+.scroll-area{flex:1;overflow-y:auto}
+.pad{padding:16px}
+.card{background:${C.surf};border:1px solid ${C.border};border-radius:12px;padding:14px;margin-bottom:10px}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.lbl{font-size:11px;color:${C.muted};font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.btn{width:100%;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:.3px;border:1.5px solid;color:#fff}
+.btn-out{background:transparent!important;border-width:1.5px}
+.btn-sm{padding:8px 16px;font-size:13px}
+.mono{font-family:monospace}
+input,textarea{width:100%;background:${C.bg};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;color:${C.text};font-size:15px;font-family:inherit}
+textarea{resize:none;height:76px}
+.sep{height:1px;background:${C.border};margin:10px 0}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:flex-end;padding:0}
+.modal{background:${C.surf};border-radius:16px 16px 0 0;padding:24px 16px 32px;width:100%;max-height:85vh;overflow-y:auto}
+.loading-pulse{opacity:.5;animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.2}}`;
+const sEl=document.createElement('style');sEl.textContent=css;document.head.appendChild(sEl);
+
+// ── TOP BAR ───────────────────────────────────────────────────────
+function renderTopBar(title,onBack){
+  const bar=el('div',{class:'topbar'});
+  if(onBack){const b=el('button',{class:'back-btn',onclick:onBack});b.textContent='‹';bar.append(b);}
+  
+  const tc=el('div',{style:{flex:'1',display:'flex',alignItems:'center',gap:'8px'}});
+  if(!onBack){
+    const lg=txt('span',`⬢ ${state.vendorName.toUpperCase()}`);
+    lg.style.cssText=`font-weight:800;color:${C.gold};letter-spacing:1px;font-size:16px`;
+    tc.append(lg);
+  }
+  const t=txt('span', onBack ? title : `—  ${title}`);
+  t.style.cssText=`font-size:${onBack?'16px':'13px'};color:${onBack?C.text:C.muted};font-weight:${onBack?'700':'500'};`;
+  tc.append(t);
+  bar.append(tc);
+
+  // Refresh + logout
+  const wrap=el('div',{style:{display:'flex',alignItems:'center',gap:'6px'}});
+  if(!onBack){
+    const rb=el('button',{style:{background:'none',border:'none',color:C.gold,cursor:'pointer',fontSize:'16px'},onclick:()=>loadTab()});
+    rb.textContent='↻';
+    wrap.append(rb);
+  }
+  const x=el('button',{style:{background:'none',border:'none',color:C.red,cursor:'pointer',fontSize:'14px'},onclick:()=>{state.view='login';state.sub=null;render();}});
+  x.textContent='⏏️';
+  wrap.append(x);
+  bar.append(wrap);
+  return bar;
+}
+
+// ── BOTTOM NAV ────────────────────────────────────────────────────
+function renderBottomNav(){
+  const tabs=[
+    {key:'rfqs',label:'RFQs',icon:'📡'},
+    {key:'jobs',label:'Active Jobs',icon:'🚛'},
+    {key:'payments',label:'Payments',icon:'💰'}
+  ];
+  const nav=el('div',{class:'bottom-nav'});
+  tabs.forEach(t=>{
+    const b=el('button',{class:'nav-btn',onclick:()=>{state.tab=t.key;state.sub=null;loadTab();}});
+    const i=txt('span',t.icon,'nav-icon');
+    const l=txt('span',t.label,'nav-label');
+    l.style.color=state.tab===t.key?C.gold:C.muted;
+    b.append(i,l);nav.append(b);
+  });
+  return nav;
+}
+
+// ════════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════════
+
+// Hardcoded vendor list as fallback (always works even if API fails)
+const VENDOR_LIST = [
+  { id:'22222222-2222-2222-2222-222222222222', name:'Al Hamd Heavy Transport' },
+  { id:'33333333-3333-3333-3333-333333333333', name:'Gulf Express Transport' },
+  { id:'44444444-4444-4444-4444-444444444444', name:'RAK Heavy Movers' },
+  { id:'55555555-5555-5555-5555-555555555555', name:'Sharjah Crane Services' },
+];
+
+function renderLogin(){
+  const d=el('div',{style:{background:C.bg,padding:'40px 24px',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}});
+  
+  const logo=txt('div','⬢ KASPER');logo.style.cssText=`font-size:36px;font-weight:800;color:${C.gold};letter-spacing:3px;text-align:center;margin-bottom:6px`;
+  const sub=txt('div','Vendor Portal');sub.style.cssText=`font-size:14px;color:${C.muted};text-align:center;margin-bottom:30px`;
+  d.append(logo, sub);
+
+  const loginCard=el('div',{class:'card',style:{padding:'30px 24px',maxWidth:'400px',width:'100%',borderColor:C.gold+'44'}});
+  const title=txt('h2','Select Your Company');title.style.cssText=`font-size:18px;margin-bottom:20px;text-align:center;color:${C.text}`;
+  loginCard.append(title);
+
+  // Build vendor select with proper DOM manipulation
+  const vendorSelect=el('select',{style:{width:'100%',padding:'14px',background:C.bg,border:`1px solid ${C.border}`,color:C.text,borderRadius:'8px',marginBottom:'20px'}});
+  
+  function populateSelect(vendors){
+    vendorSelect.innerHTML='';
+    vendors.forEach(v=>{
+      const opt=document.createElement('option');
+      opt.value=v.id;
+      opt.textContent=v.name;
+      vendorSelect.appendChild(opt);
+    });
+  }
+  
+  // Start with hardcoded list immediately (zero delay)
+  populateSelect(VENDOR_LIST);
+  
+  // Try to fetch live vendors from API (silently update if successful)
+  sb.get('vendors?order=company_name').then(vendors=>{
+    if(Array.isArray(vendors) && vendors.length){
+      const live=vendors
+        .filter(v=>v.id!=='11111111-1111-1111-1111-111111111111')
+        .map(v=>({id:v.id, name:v.company_name}));
+      if(live.length) populateSelect(live);
+    }
+  }).catch(e=>console.warn('Vendor fetch failed, using hardcoded list',e));
+
+  const loginBtn=btn('Enter Portal',C.gold,()=>{
+    if(!vendorSelect.value) return;
+    state.vendorId=vendorSelect.value;
+    state.vendorName=vendorSelect.options[vendorSelect.selectedIndex]?.textContent||'Vendor';
+    state.view='portal';
+    state.tab='rfqs';
+    loadTab();
+  });
+  
+  loginCard.append(vendorSelect, loginBtn);
+  
+  const hint=txt('div','Vendors access this portal to respond to RFQs, manage assigned jobs, and track payments.');
+  hint.style.cssText=`font-size:12px;color:${C.muted};text-align:center;margin-top:16px;max-width:300px;line-height:1.6`;
+  
+  const homeLink=el('a',{href:'index.html',style:{display:'block',textAlign:'center',color:C.gold,fontSize:'13px',marginTop:'30px',textDecoration:'none'}});
+  homeLink.textContent='← Back to Homepage';
+  
+  d.append(loginCard, hint, homeLink);
+  return d;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 1: RFQs — Incoming requests from Kasper
+// ════════════════════════════════════════════════════════════════
+function renderRFQs(){
+  const{rfqs,loading}=state;
+  const d=el('div',{class:'pad'});
+  
+  if(loading){
+    const l=txt('div','Loading RFQs…','loading-pulse');
+    l.style.cssText=`color:${C.muted};text-align:center;padding:40px`;
+    d.append(l); return d;
+  }
+
+  // Header
+  const hdr=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}});
+  hdr.append(txt('div',`${rfqs.length} Open RFQ${rfqs.length!==1?'s':''}`));
+  hdr.children[0].style.cssText=`font-size:15px;font-weight:700;color:${C.text}`;
+  d.append(hdr);
+
+  if(!rfqs.length){
+    const nj=el('div',{class:'card',style:{textAlign:'center',padding:'40px 20px'}});
+    nj.append(txt('div','📡'),txt('div','No pending RFQs'),txt('div','When Kasper sends you a request for quote, it will appear here.'));
+    nj.children[0].style.cssText='font-size:40px;margin-bottom:12px';
+    nj.children[1].style.cssText=`font-size:16px;font-weight:700;color:${C.text};margin-bottom:8px`;
+    nj.children[2].style.cssText=`font-size:13px;color:${C.muted};line-height:1.6`;
+    d.append(nj); return d;
+  }
+
+  rfqs.forEach(rfq=>{
+    const j=rfq._job||{};
+    const jc=el('div',{class:'card',style:{borderColor:C.gold+'44'}});
+    
+    // Header row
+    const top=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}});
+    const code=txt('span',j.job_code||'—','mono');code.style.cssText=`font-size:13px;font-weight:600;color:${C.text}`;
+    top.append(code,badge('sent'));
+    jc.append(top);
+
+    // Route
+    const rt=j.service_type==='logistics'
+      ?`${j.origin||'—'} → ${j.destination||'—'}`
+      :j.equipment_type||'—';
+    const route=txt('div',rt);route.style.cssText=`font-size:14px;color:${C.text};margin-bottom:6px`;
+    jc.append(route);
+
+    // Details row
+    const details=el('div',{style:{display:'flex',gap:'16px',marginBottom:'12px'}});
+    [{l:'Cargo',v:j.cargo_type||j.equipment_type||'—'},{l:'Date',v:j.pickup_date||j.start_date||'—'}].forEach(item=>{
+      const dd=el('div');
+      dd.append(txt('div',item.l,'lbl'),txt('div',item.v));
+      dd.children[1].style.cssText=`font-size:13px;color:${C.text}`;
+      details.append(dd);
+    });
+    jc.append(details);
+
+    // Quote form (inline)
+    const quoteForm=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px'}});
+    const priceInput=el('input',{type:'number',placeholder:'Your price (AED)',style:{marginBottom:'8px'}});
+    const notesInput=el('input',{type:'text',placeholder:'Notes (optional)',style:{marginBottom:'10px'}});
+    
+    const submitBtn=btn('💰 Submit Quote',C.gold,async()=>{
+      const price=parseFloat(priceInput.value);
+      if(!price||price<=0){priceInput.style.borderColor=C.red;return;}
+      submitBtn.disabled=true;submitBtn.textContent='Submitting…';
+      await sb.patch(`vendor_rfqs?id=eq.${rfq.id}`,{
+        status:'quoted',
+        vendor_price:price,
+        vendor_notes:notesInput.value||null,
+        quoted_at:new Date().toISOString()
+      });
+      // Reload
+      await loadRFQs();
+      render();
+    });
+    
+    quoteForm.append(priceInput,notesInput,submitBtn);
+    jc.append(quoteForm);
+    d.append(jc);
+  });
+
+  return d;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 2: Active Jobs — Jobs assigned to this vendor
+// ════════════════════════════════════════════════════════════════
+function renderActiveJobs(){
+  const{jobs,loading}=state;
+  const d=el('div',{class:'pad'});
+  
+  if(loading){
+    const l=txt('div','Loading jobs…','loading-pulse');
+    l.style.cssText=`color:${C.muted};text-align:center;padding:40px`;
+    d.append(l); return d;
+  }
+
+  const hdr=txt('div',`${jobs.length} Active Job${jobs.length!==1?'s':''}`);
+  hdr.style.cssText=`font-size:15px;font-weight:700;color:${C.text};margin-bottom:16px`;
+  d.append(hdr);
+
+  if(!jobs.length){
+    const nj=el('div',{class:'card',style:{textAlign:'center',padding:'40px 20px'}});
+    nj.append(txt('div','🚛'),txt('div','No active jobs'),txt('div','Jobs assigned to you will appear here after your quote is accepted.'));
+    nj.children[0].style.cssText='font-size:40px;margin-bottom:12px';
+    nj.children[1].style.cssText=`font-size:16px;font-weight:700;color:${C.text};margin-bottom:8px`;
+    nj.children[2].style.cssText=`font-size:13px;color:${C.muted};line-height:1.6`;
+    d.append(nj); return d;
+  }
+
+  jobs.forEach(j=>{
+    const jc=el('div',{class:'card',style:{cursor:j.status==='vendor_po_sent'?'pointer':'default'}});
+    
+    // Header
+    const top=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}});
+    const code=txt('span',j.job_code||'—','mono');code.style.cssText=`font-size:13px;font-weight:600;color:${C.text}`;
+    top.append(code,badge(j.status));
+    jc.append(top);
+
+    // Route
+    const rt=j.service_type==='logistics'
+      ?`${j.origin||'—'} → ${j.destination||'—'}`
+      :j.equipment_type||'—';
+    const route=txt('div',rt);route.style.cssText=`font-size:14px;color:${C.text};margin-bottom:4px`;
+    jc.append(route);
+
+    // Price (vendor_price only — NEVER show quoted_price)
+    if(j.vendor_price){
+      const pr=txt('div',`Your Rate: AED ${Number(j.vendor_price).toLocaleString()}`);
+      pr.style.cssText=`font-size:14px;font-weight:700;color:${C.gold};margin-bottom:8px`;
+      jc.append(pr);
+    }
+
+    // Date
+    const date=txt('div',`📅 ${j.pickup_date||j.start_date||'—'}`);
+    date.style.cssText=`font-size:12px;color:${C.muted};margin-bottom:8px`;
+    jc.append(date);
+
+    // Driver info if assigned
+    if(j.driver_name){
+      const drv=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'8px',marginTop:'4px'}});
+      drv.append(txt('div','DRIVER','lbl'),txt('div',`${j.driver_name}  •  ${j.vehicle_plate||'—'}  •  ${j.driver_phone||'—'}`));
+      drv.children[1].style.cssText=`font-size:12px;color:${C.muted}`;
+      jc.append(drv);
+    }
+
+    // ── VENDOR_PO_SENT: Assign driver ──────────────────────────
+    if(j.status==='vendor_po_sent'){
+      const assignDiv=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px',marginTop:'8px'}});
+      assignDiv.append(txt('div','ASSIGN YOUR DRIVER','lbl'));
+      
+      const driverName=el('input',{type:'text',placeholder:'Driver full name',style:{marginBottom:'8px',marginTop:'6px'}});
+      const driverPhone=el('input',{type:'tel',placeholder:'Driver phone (05X XXX XXXX)',style:{marginBottom:'8px'}});
+      const driverPlate=el('input',{type:'text',placeholder:'Vehicle plate number',style:{marginBottom:'10px'}});
+      
+      const assignBtn=btn('✓ Assign Driver & Confirm',C.green,async()=>{
+        const name=driverName.value.trim();
+        const phone=driverPhone.value.trim();
+        const plate=driverPlate.value.trim();
+        if(!name){driverName.style.borderColor=C.red;return;}
+        if(!phone){driverPhone.style.borderColor=C.red;return;}
+        assignBtn.disabled=true;assignBtn.textContent='Assigning…';
+        await sb.patch(`jobs?job_code=eq.${encodeURIComponent(j.job_code)}`,{
+          driver_name:name,
+          driver_phone:phone,
+          vehicle_plate:plate||null,
+          status:'assigned'
+        });
+        await loadActiveJobs();
+        render();
+      });
+      
+      assignDiv.append(driverName,driverPhone,driverPlate,assignBtn);
+      jc.append(assignDiv);
+    }
+
+    d.append(jc);
+  });
+
+  return d;
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB 3: Payments — Completed jobs + settlement
+// ════════════════════════════════════════════════════════════════
+function renderPayments(){
+  const{jobs,loading}=state;
+  const d=el('div',{class:'pad'});
+  
+  if(loading){
+    const l=txt('div','Loading payments…','loading-pulse');
+    l.style.cssText=`color:${C.muted};text-align:center;padding:40px`;
+    d.append(l); return d;
+  }
+
+  // Summary card
+  const totalOwed=jobs.reduce((sum,j)=>sum+Number(j.vendor_price||0),0);
+  const paidJobs=jobs.filter(j=>j.payment_status==='paid'||j.status==='paid');
+  const totalPaid=paidJobs.reduce((sum,j)=>sum+Number(j.vendor_price||0),0);
+  const pending=totalOwed-totalPaid;
+
+  const summary=el('div',{class:'card',style:{borderColor:C.gold+'44'}});
+  summary.append(txt('div','SETTLEMENT SUMMARY','lbl'));
+  const sg=el('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',marginTop:'10px'}});
+  [{l:'Total Earned',v:`AED ${totalOwed.toLocaleString()}`,c:C.gold},
+   {l:'Paid',v:`AED ${totalPaid.toLocaleString()}`,c:C.green},
+   {l:'Pending',v:`AED ${pending.toLocaleString()}`,c:C.amber}].forEach(m=>{
+    const mc=el('div');
+    mc.append(txt('div',m.l,'lbl'));
+    const mv=txt('div',m.v);mv.style.cssText=`font-size:14px;font-weight:700;color:${m.c};margin-top:4px`;
+    mc.append(mv);sg.append(mc);
+  });
+  summary.append(sg);d.append(summary);
+
+  // Job list
+  const hdr=txt('div',`${jobs.length} Completed Job${jobs.length!==1?'s':''}`);
+  hdr.style.cssText=`font-size:15px;font-weight:700;color:${C.text};margin:16px 0 12px`;
+  d.append(hdr);
+
+  if(!jobs.length){
+    const nj=el('div',{class:'card',style:{textAlign:'center',padding:'30px'}});
+    nj.append(txt('div','No completed jobs yet.'));
+    nj.children[0].style.cssText=`font-size:14px;color:${C.muted}`;
+    d.append(nj); return d;
+  }
+
+  jobs.forEach(j=>{
+    const jc=el('div',{class:'card'});
+    const top=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px'}});
+    top.append(txt('span',j.job_code,'mono'),badge(j.status));
+    jc.append(top);
+
+    const rt=j.service_type==='logistics'
+      ?`${j.origin||'—'} → ${j.destination||'—'}`
+      :j.equipment_type||'—';
+    jc.append(txt('div',rt));
+    jc.children[1].style.cssText=`font-size:13px;color:${C.muted};margin-bottom:6px`;
+
+    // Show vendor_price ONLY — NEVER quoted_price
+    if(j.vendor_price){
+      const pr=txt('div',`AED ${Number(j.vendor_price).toLocaleString()}`);
+      pr.style.cssText=`font-size:16px;font-weight:700;color:${C.gold}`;
+      jc.append(pr);
+    }
+
+    const isPaid=j.payment_status==='paid'||j.status==='paid';
+    const payTag=txt('div',isPaid?'✓ Settled':'⏳ Pending Settlement');
+    payTag.style.cssText=`font-size:12px;color:${isPaid?C.green:C.amber};margin-top:6px`;
+    jc.append(payTag);
+
+    d.append(jc);
+  });
+
+  return d;
+}
+
+// ════════════════════════════════════════════════════════════════
+// MAIN RENDER
+// ════════════════════════════════════════════════════════════════
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML='';
+  app.style.cssText='min-height:100vh;display:flex;flex-direction:column;background:'+C.bg;
+
+  const{view,tab,sub}=state;
+  if(view==='login'){app.append(renderLogin());return;}
+
+  const getTitle=()=>{
+    if(tab==='rfqs') return 'Incoming RFQs';
+    if(tab==='jobs') return 'Active Jobs';
+    return 'Payments';
+  };
+
+  app.append(renderTopBar(getTitle(),null));
+
+  const scroll=el('div',{class:'scroll-area',style:{flex:'1',overflowY:'auto',paddingBottom:'16px'}});
+
+  if(tab==='rfqs') scroll.append(renderRFQs());
+  else if(tab==='jobs') scroll.append(renderActiveJobs());
+  else scroll.append(renderPayments());
+
+  app.append(scroll);
+  app.append(renderBottomNav());
+}
+
+// ── Boot ─────────────────────────────────────────────────────────
+render();
+// Auto-refresh every 10s when in portal
+setInterval(()=>{ if(state.view==='portal') loadTab(); }, 10000);
+</script>
+</body>
+</html>

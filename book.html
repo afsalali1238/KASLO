@@ -132,6 +132,7 @@
           <div class="input-group">
             <label>Origin</label>
             <select name="origin" required>
+              <option>Dubai</option>
               <option>Khor Fakkan</option>
               <option>Fujairah</option>
               <option>Jebel Ali</option>
@@ -152,16 +153,21 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="input-group">
+        <div class="form-row" style="flex-wrap: wrap;">
+          <div class="input-group" style="flex: 2; min-width: 200px;">
             <label>Cargo Type</label>
             <select name="cargo_type" required>
-              <option value="container">Standard Container</option>
-              <option value="materials">Construction Materials</option>
-              <option value="oversized">Oversized Machinery</option>
+              <option value="Box/Pallet Freight">Box/Pallet Freight</option>
+              <option value="Standard Container">Standard Container</option>
+              <option value="Construction Materials">Construction Materials</option>
+              <option value="Oversized Machinery">Oversized Machinery</option>
             </select>
           </div>
-          <div class="input-group">
+          <div class="input-group" style="flex: 1; min-width: 100px;">
+            <label>Weight</label>
+            <input type="text" name="weight" placeholder="e.g. 500kg">
+          </div>
+          <div class="input-group" style="flex: 2; min-width: 150px;">
             <label>Pickup Date</label>
             <input type="date" name="pickup_date" required>
           </div>
