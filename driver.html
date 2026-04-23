@@ -231,6 +231,7 @@ function renderDashboardList() {
           <div>
             <div style="font-family:monospace; font-size:0.9rem;">${j.job_code}</div>
             <div style="font-size:0.85rem; color:var(--text-muted);">${j.client_name || 'Client'}</div>
+            <div style="font-size:0.75rem; color:var(--teal); margin-top:4px;">${j.pickup_date || j.start_date || ''}</div>
           </div>
           <span class="tag" style="background:${bCol}22; color:${bCol}; border:1px solid ${bCol}66;">${j.status.toUpperCase().replace('_',' ')}</span>
         </div>
