@@ -1272,9 +1272,38 @@ function renderOpsJobDetail(){
     acts.append(waitCard);
   }
 
-  // Assign driver (for vendor_po_sent via override)
-  if(j.status==='assigned' && !j.driver_name){
-    const ab=btn('Assign Driver',C.amber,()=>openAssignModal(j));acts.append(ab);
+  // Driver Assigned -> Notify Client
+  if(j.status==='assigned'){
+    const notifyCard=el('div',{class:'card card-teal',style:{marginTop:'10px'}});
+    notifyCard.append(txt('div','DRIVER ASSIGNED','lbl'));
+    const nInfo=txt('div',`${j.driver_name||'A driver'} has been assigned. Notify the client with the live tracking link.`);
+    nInfo.style.cssText=`font-size:13px;color:${C.teal};margin:8px 0 12px`;
+    notifyCard.append(nInfo);
+
+    const shareBtn=btn('📲 Share Tracking via WhatsApp',C.teal,()=>{
+      const link = `https://kaslo-liard.vercel.app/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
+      const msg = `Hello ${j.client_name||'Client'},\n\nYour driver for booking ${j.job_code} has been assigned! You can track your shipment live here:\n${link}\n\nThank you for using Kasper.`;
+      const waUrl = `https://wa.me/${(j.client_phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl,'_blank');
+    });
+    
+    const copyBtn=outlineBtn('Copy Tracking Link',C.teal,()=>{
+      const link = `https://kaslo-liard.vercel.app/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
+      navigator.clipboard.writeText(link);
+      copyBtn.textContent='✓ Copied!';
+      setTimeout(()=>copyBtn.textContent='Copy Tracking Link', 2000);
+    });
+    copyBtn.style.marginTop='8px';
+
+    notifyCard.append(shareBtn, copyBtn);
+    acts.append(notifyCard);
+
+    // Fallback if driver isn't properly assigned but status is assigned
+    if(!j.driver_name){
+      const ab=btn('Force Assign Driver',C.amber,()=>openAssignModal(j));
+      ab.style.marginTop='10px';
+      notifyCard.append(ab);
+    }
   }
 
   // In transit → delivered
