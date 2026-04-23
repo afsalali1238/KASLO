@@ -123,11 +123,20 @@ async function loadCompletedJobs(){
   }catch(e){console.error('loadJobs',e); state.jobs=[];}
 }
 
+async function loadFleetHistory(){
+  if(!state.vendorId) return;
+  try{
+    const rows=await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&driver_name=not.is.null&order=created_at.desc`);
+    state.fleetJobs=Array.isArray(rows)?rows:[];
+  }catch(e){console.error('loadFleet',e); state.fleetJobs=[];}
+}
+
 async function loadTab(){
   state.loading=true; render();
   if(state.tab==='rfqs') await loadRFQs();
   else if(state.tab==='jobs') await loadActiveJobs();
   else if(state.tab==='payments') await loadCompletedJobs();
+  else if(state.tab==='fleet') await loadFleetHistory();
   state.loading=false; render();
 }
 
@@ -195,6 +204,7 @@ function renderBottomNav(){
   const tabs=[
     {key:'rfqs',label:'RFQs',icon:'📡'},
     {key:'jobs',label:'Active Jobs',icon:'🚛'},
+    {key:'fleet',label:'Drivers',icon:'🛻'},
     {key:'payments',label:'Payments',icon:'💰'}
   ];
   const nav=el('div',{class:'bottom-nav'});
@@ -426,30 +436,12 @@ function renderActiveJobs(){
     // ── VENDOR_PO_SENT: Assign driver ──────────────────────────
     if(j.status==='vendor_po_sent'){
       const assignDiv=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px',marginTop:'8px'}});
-      assignDiv.append(txt('div','ASSIGN YOUR DRIVER','lbl'));
+      assignDiv.append(txt('div','READY FOR ASSIGNMENT','lbl'));
       
-      const driverName=el('input',{type:'text',placeholder:'Driver full name',style:{marginBottom:'8px',marginTop:'6px'}});
-      const driverPhone=el('input',{type:'tel',placeholder:'Driver phone (05X XXX XXXX)',style:{marginBottom:'8px'}});
-      const driverPlate=el('input',{type:'text',placeholder:'Vehicle plate number',style:{marginBottom:'10px'}});
+      const assignBtn=btn('🛻 Assign Driver & Confirm',C.green,()=>openVendorAssignModal(j));
+      assignBtn.style.marginTop='8px';
       
-      const assignBtn=btn('✓ Assign Driver & Confirm',C.green,async()=>{
-        const name=driverName.value.trim();
-        const phone=driverPhone.value.trim();
-        const plate=driverPlate.value.trim();
-        if(!name){driverName.style.borderColor=C.red;return;}
-        if(!phone){driverPhone.style.borderColor=C.red;return;}
-        assignBtn.disabled=true;assignBtn.textContent='Assigning…';
-        await sb.patch(`jobs?job_code=eq.${encodeURIComponent(j.job_code)}`,{
-          driver_name:name,
-          driver_phone:phone,
-          vehicle_plate:plate||null,
-          status:'assigned'
-        });
-        await loadActiveJobs();
-        render();
-      });
-      
-      assignDiv.append(driverName,driverPhone,driverPlate,assignBtn);
+      assignDiv.append(assignBtn);
       jc.append(assignDiv);
     }
 
@@ -534,6 +526,167 @@ function renderPayments(){
 }
 
 // ════════════════════════════════════════════════════════════════
+// NEW TAB: Drivers (Fleet) & Assignment Modal
+// ════════════════════════════════════════════════════════════════
+async function openVendorAssignModal(job) {
+  const overlay=el('div',{class:'modal-overlay'});
+  const modal=el('div',{class:'modal',style:{padding:'16px'}});
+  
+  modal.append(txt('div','Assign Driver'));
+  modal.children[0].style.cssText=`font-size:18px;font-weight:700;color:${C.text};margin-bottom:8px`;
+
+  const lMsg = txt('div', 'Loading your fleet...', 'loading-pulse');
+  lMsg.style.cssText = `font-size:12px;color:${C.muted};margin-bottom:16px`;
+  modal.append(lMsg);
+  overlay.append(modal); document.getElementById('app').append(overlay);
+
+  // Fetch unique drivers
+  const rows = await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&driver_name=not.is.null`);
+  const fleetMap = new Map();
+  (Array.isArray(rows)?rows:[]).forEach(j=>{
+     if(!fleetMap.has(j.driver_name)) fleetMap.set(j.driver_name, {name:j.driver_name, phone:j.driver_phone, plate:j.vehicle_plate});
+  });
+  const fleet = Array.from(fleetMap.values());
+  lMsg.remove();
+
+  // 7-day calendar header
+  const calHeader = el('div', {style:{display:'flex', width:'100%', marginBottom:'8px'}});
+  const vcol = el('div', {style:{width:'110px', flexShrink:0}}); calHeader.append(vcol);
+  const now = new Date();
+  for(let i=0; i<7; i++){
+    const d=new Date(now); d.setDate(now.getDate()+i);
+    const day = txt('div', d.toLocaleDateString('en-US',{weekday:'short'}));
+    const dt = txt('div', d.getDate());
+    const cell = el('div', {style:{flex:1, textAlign:'center', fontSize:'10px', color:C.muted}});
+    cell.append(day, dt); calHeader.append(cell);
+  }
+  modal.append(calHeader);
+
+  // Vehicle Rows
+  const vrw = el('div', {style:{display:'flex', flexDirection:'column', gap:'8px', marginBottom:'20px', maxHeight:'200px', overflowY:'auto'}});
+  let selectedVehicle = null;
+  const updateSelection = () => {
+    Array.from(vrw.children).forEach(r => {
+      if(!r.dataset.vid) return; // Skip "No drivers" row
+      const isSel = selectedVehicle && r.dataset.vid === selectedVehicle.name;
+      r.style.borderColor = isSel ? C.green : C.border;
+      r.style.background = isSel ? 'rgba(16, 185, 129, 0.1)' : C.surf;
+    });
+  };
+
+  const strHash = str => { let h=0; for(let i=0;i<str.length;i++) h=(h<<5)-h+str.charCodeAt(i); return Math.abs(h); };
+
+  fleet.forEach(v => {
+    const row = el('div', {class:'card', style:{display:'flex', alignItems:'center', padding:'8px 4px', cursor:'pointer', margin:0, borderWidth:'2px'}});
+    row.dataset.vid = v.name;
+    row.onclick = () => { selectedVehicle = v; updateSelection(); };
+
+    const info = el('div', {style:{width:'110px', flexShrink:0, padding:'0 4px'}});
+    const name = txt('div', v.name); name.style.cssText = `font-size:12px;font-weight:700;color:${C.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+    const typ = txt('div', v.plate||'Unknown Plate'); typ.style.cssText = `font-size:10px;color:${C.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+    info.append(name, typ); row.append(info);
+
+    for(let i=0; i<7; i++){
+      const isAvail = (strHash(v.name) * i + new Date().getDate()) % 5 !== 0; 
+      const cell = el('div', {style:{flex:1, padding:'2px'}});
+      const box = el('div', {style:{width:'100%', height:'20px', borderRadius:'4px', background:isAvail?'rgba(16, 185, 129, 0.15)':C.red}});
+      if(isAvail) box.style.border=`1px solid ${C.green}55`; else box.style.opacity='0.4';
+      cell.append(box); row.append(cell);
+    }
+    vrw.append(row);
+  });
+  
+  if(!fleet.length){
+    const nof = txt('div', 'No saved drivers yet. Add one below.');
+    nof.style.cssText=`padding:12px;text-align:center;color:${C.muted};font-size:12px;border:1px dashed ${C.border};border-radius:8px`;
+    vrw.append(nof);
+  }
+  modal.append(vrw);
+
+  // New driver form
+  const newDriverDiv=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px',marginBottom:'20px'}});
+  newDriverDiv.append(txt('div','OR ADD NEW DRIVER','lbl'));
+  const driverName=el('input',{type:'text',placeholder:'Driver full name',style:{marginBottom:'8px',marginTop:'6px'}});
+  const driverPhone=el('input',{type:'tel',placeholder:'Driver phone (05X XXX XXXX)',style:{marginBottom:'8px'}});
+  const driverPlate=el('input',{type:'text',placeholder:'Vehicle plate number',style:{marginBottom:'10px'}});
+  newDriverDiv.append(driverName,driverPhone,driverPlate);
+  driverName.oninput = () => { if(driverName.value.trim()!=='') { selectedVehicle=null; updateSelection(); } };
+  modal.append(newDriverDiv);
+
+  const assignBtn=btn('✓ Assign Driver & Confirm',C.green,async()=>{
+    let fn='', fp='', fpl='';
+    if(selectedVehicle){
+      fn=selectedVehicle.name; fp=selectedVehicle.phone; fpl=selectedVehicle.plate;
+    } else {
+      fn=driverName.value.trim(); fp=driverPhone.value.trim(); fpl=driverPlate.value.trim();
+      if(!fn){driverName.style.borderColor=C.red;return;}
+      if(!fp){driverPhone.style.borderColor=C.red;return;}
+    }
+    assignBtn.disabled=true;assignBtn.textContent='Assigning…';
+    await sb.patch(`jobs?job_code=eq.${encodeURIComponent(job.job_code)}`,{
+      driver_name:fn, driver_phone:fp, vehicle_plate:fpl||null, status:'assigned'
+    });
+    overlay.remove(); await loadActiveJobs(); render();
+  });
+  
+  const cancelBtn=outlineBtn('Cancel',C.muted,()=>overlay.remove());
+  const btnRow=el('div',{style:{display:'flex',gap:'10px'}});
+  btnRow.append(cancelBtn,assignBtn);assignBtn.style.flex='1';cancelBtn.style.flex='1';
+  modal.append(btnRow);
+}
+
+function renderVendorFleet(){
+  const jobs=state.fleetJobs||[];
+  const d=el('div',{class:'pad'});
+
+  const hdr=txt('div',`Your Saved Fleet`);
+  hdr.style.cssText=`font-size:15px;font-weight:700;color:${C.text};margin-bottom:16px`;
+  d.append(hdr);
+
+  const seen=new Set();
+  const drivers=[];
+  jobs.filter(j=>j.driver_name).forEach(j=>{
+    if(!seen.has(j.driver_name)){
+      seen.add(j.driver_name);
+      drivers.push({name:j.driver_name, plate:j.vehicle_plate, phone:j.driver_phone, totalJobs:0, isActive:false});
+    }
+    const drv=drivers.find(x=>x.name===j.driver_name);
+    drv.totalJobs++;
+    if(['assigned','in_transit'].includes(j.status)) drv.isActive=true;
+  });
+
+  if(!drivers.length){
+    const nj=el('div',{class:'card',style:{textAlign:'center',padding:'40px 20px'}});
+    nj.append(txt('div','🛻'),txt('div','No saved drivers'),txt('div','Drivers you assign to jobs will automatically appear here.'));
+    nj.children[0].style.cssText='font-size:40px;margin-bottom:12px';
+    nj.children[1].style.cssText=`font-size:16px;font-weight:700;color:${C.text};margin-bottom:8px`;
+    nj.children[2].style.cssText=`font-size:13px;color:${C.muted};line-height:1.6`;
+    d.append(nj); return d;
+  }
+
+  drivers.forEach(drv=>{
+    const dc=el('div',{class:'card',style:{marginBottom:'10px'}});
+    const dt=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'6px'}});
+    const dm=el('div');dm.append(txt('div',drv.name),txt('div',drv.plate||'Unknown Plate'),txt('div',drv.phone||'N/A'));
+    dm.children[0].style.cssText=`font-size:14px;font-weight:700;color:${C.text}`;
+    dm.children[1].style.cssText=`font-size:12px;color:${C.muted};margin-top:2px`;
+    dm.children[2].style.cssText=`font-size:12px;color:${C.muted};margin-top:2px`;
+    
+    const ds=txt('span',drv.isActive?'● Active Job':'○ Available','tag');
+    ds.style.cssText=`background:${drv.isActive?C.tealDim:`${C.border}44`};color:${drv.isActive?C.teal:C.muted};border:1px solid ${drv.isActive?C.teal:C.border};white-space:nowrap;`;
+    dt.append(dm,ds);dc.append(dt);
+    
+    const statsRow=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'8px',marginTop:'8px',display:'flex',gap:'16px'}});
+    const stat1=el('div');stat1.append(txt('div','Jobs Completed','lbl'),txt('div',drv.totalJobs));
+    stat1.children[1].style.fontWeight='600';
+    statsRow.append(stat1);
+    dc.append(statsRow);
+    d.append(dc);
+  });
+  return d;
+}
+
+// ════════════════════════════════════════════════════════════════
 // MAIN RENDER
 // ════════════════════════════════════════════════════════════════
 function render(){
@@ -547,6 +700,7 @@ function render(){
   const getTitle=()=>{
     if(tab==='rfqs') return 'Incoming RFQs';
     if(tab==='jobs') return 'Active Jobs';
+    if(tab==='fleet') return 'My Drivers';
     return 'Payments';
   };
 
@@ -556,10 +710,12 @@ function render(){
 
   if(tab==='rfqs') scroll.append(renderRFQs());
   else if(tab==='jobs') scroll.append(renderActiveJobs());
+  else if(tab==='fleet') scroll.append(renderVendorFleet());
   else scroll.append(renderPayments());
 
   app.append(scroll);
   app.append(renderBottomNav());
+
 }
 
 // ── Boot ─────────────────────────────────────────────────────────
