@@ -613,37 +613,28 @@ async function openVendorAssignModal(job) {
   });
   
   if(!fleet.length){
-    const nof = txt('div', 'No saved drivers yet. Add one below.');
-    nof.style.cssText=`padding:12px;text-align:center;color:${C.muted};font-size:12px;border:1px dashed ${C.border};border-radius:8px`;
+    const nof = txt('div', 'No saved drivers yet. Please go to the Drivers tab (🛻) to add your drivers first.');
+    nof.style.cssText=`padding:12px;text-align:center;color:${C.amber};font-size:12px;border:1px dashed ${C.amber};border-radius:8px;background:${C.amber}11`;
     vrw.append(nof);
   }
   modal.append(vrw);
 
-  // New driver form
-  const newDriverDiv=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px',marginBottom:'20px'}});
-  newDriverDiv.append(txt('div','OR ADD NEW DRIVER','lbl'));
-  const driverName=el('input',{type:'text',placeholder:'Driver full name',style:{marginBottom:'8px',marginTop:'6px'}});
-  const driverPhone=el('input',{type:'tel',placeholder:'Driver phone (05X XXX XXXX)',style:{marginBottom:'8px'}});
-  const driverPlate=el('input',{type:'text',placeholder:'Vehicle plate number',style:{marginBottom:'10px'}});
-  newDriverDiv.append(driverName,driverPhone,driverPlate);
-  driverName.oninput = () => { if(driverName.value.trim()!=='') { selectedVehicle=null; updateSelection(); } };
-  modal.append(newDriverDiv);
-
   const assignBtn=btn('✓ Assign Driver & Confirm',C.green,async()=>{
-    let fn='', fp='', fpl='';
-    if(selectedVehicle){
-      fn=selectedVehicle.name; fp=selectedVehicle.phone; fpl=selectedVehicle.plate;
-    } else {
-      fn=driverName.value.trim(); fp=driverPhone.value.trim(); fpl=driverPlate.value.trim();
-      if(!fn){driverName.style.borderColor=C.red;return;}
-      if(!fp){driverPhone.style.borderColor=C.red;return;}
+    if(!selectedVehicle){
+      alert("Please select a driver from the list.");
+      return;
     }
     assignBtn.disabled=true;assignBtn.textContent='Assigning…';
     await sb.patch(`jobs?job_code=eq.${encodeURIComponent(job.job_code)}`,{
-      driver_name:fn, driver_phone:fp, vehicle_plate:fpl||null, status:'assigned'
+      driver_name:selectedVehicle.name, 
+      driver_phone:selectedVehicle.phone, 
+      vehicle_plate:selectedVehicle.plate||null, 
+      status:'assigned'
     });
     overlay.remove(); await loadActiveJobs(); render();
   });
+  
+  if(!fleet.length) assignBtn.disabled = true;
   
   const cancelBtn=outlineBtn('Cancel',C.muted,()=>overlay.remove());
   const btnRow=el('div',{style:{display:'flex',gap:'10px'}});
