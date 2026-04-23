@@ -124,7 +124,7 @@ window.driverLogin = async () => {
 async function loadDriverJobs() {
   try {
     const rows = await sb.get(`jobs?driver_name=eq.${encodeURIComponent(state.driverName)}&order=created_at.desc`);
-    state.jobs = rows || [];
+    state.jobs = (rows || []).filter(j => j.status !== 'fleet_seed');
     renderDashboardList();
   } catch(e) {
     showToast('⚠️ Error loading jobs');
@@ -286,7 +286,7 @@ function renderTrip() {
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
           <span class="lbl">FROM</span>
-          <span class="val">${j.origin || j.service_type.toUpperCase()}</span>
+          <span class="val">${j.origin || (j.service_type ? j.service_type.toUpperCase() : 'N/A')}</span>
         </div>
         <div>
           <span class="lbl">TO / SITE</span>
