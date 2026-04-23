@@ -140,18 +140,20 @@ async function loadTab(){
   state.loading=false; render();
 }
 
-function getManualDrivers(){
-  if(!state.vendorId) return [];
-  try{ return JSON.parse(localStorage.getItem('kasper_drivers_'+state.vendorId)) || []; }
-  catch(e){ return []; }
-}
-function addManualDriver(name, phone, plate){
+async function addManualDriver(name, phone, plate){
   if(!state.vendorId) return;
-  const list = getManualDrivers();
-  if(!list.find(d=>d.name===name)){
-    list.push({name, phone, plate});
-    localStorage.setItem('kasper_drivers_'+state.vendorId, JSON.stringify(list));
-  }
+  const btn = document.getElementById('add-driver-btn');
+  if(btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  await sb.post('jobs', {
+    job_code: 'FLT-' + Math.random().toString(36).substring(2,9).toUpperCase(),
+    vendor_id_assigned: state.vendorId,
+    driver_name: name,
+    driver_phone: phone,
+    vehicle_plate: plate,
+    status: 'fleet_seed'
+  });
+  await loadFleetHistory();
+  render();
 }
 
 // ── CSS injection ─────────────────────────────────────────────────
@@ -558,7 +560,6 @@ async function openVendorAssignModal(job) {
   // Fetch unique drivers
   const rows = await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&driver_name=not.is.null`);
   const fleetMap = new Map();
-  getManualDrivers().forEach(d => fleetMap.set(d.name, {name:d.name, phone:d.phone, plate:d.plate}));
   (Array.isArray(rows)?rows:[]).forEach(j=>{
      if(!fleetMap.has(j.driver_name)) fleetMap.set(j.driver_name, {name:j.driver_name, phone:j.driver_phone, plate:j.vehicle_plate});
   });
@@ -656,19 +657,14 @@ function renderVendorFleet(){
     const p = prompt("Enter driver's phone (e.g. 05X XXX XXXX):") || "";
     const pl = prompt("Enter vehicle plate number:") || "";
     addManualDriver(n.trim(), p.trim(), pl.trim());
-    render();
   });
+  addBtn.id = 'add-driver-btn';
   addBtn.style.cssText += 'padding:6px 12px;font-size:12px';
   topRow.append(hdr, addBtn);
   d.append(topRow);
 
   const seen=new Set();
   const drivers=[];
-  
-  getManualDrivers().forEach(d => {
-    seen.add(d.name);
-    drivers.push({name:d.name, plate:d.plate, phone:d.phone, totalJobs:0, isActive:false});
-  });
 
   jobs.filter(j=>j.driver_name).forEach(j=>{
     if(!seen.has(j.driver_name)){

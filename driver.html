@@ -78,8 +78,7 @@ const sb = {
 
 const C = { green: '#10B981', amber: '#FF6B00', default: '#3F3F46', bgSurf2: '#1f2020' };
 // ── State ──────────────────────────────────────────────────────────
-const FLEET = ['Ahmed Al Rashidi', 'Mohammed Hassan', 'Sanjay Kumar', 'Usman Ali', 'Khan Transport LLC'];
-let state = { driverName: null, jobs: [] };
+let state = { driverName: null, jobs: [], fleet: [] };
 let currentJob = null;
 
 // ── DOM Helpers ───────────────────────────────────────────────────
@@ -94,7 +93,7 @@ function showToast(msg) {
 
 // ── Render Logic ──────────────────────────────────────────────────
 function renderLogin() {
-  let opts = FLEET.map(name => `<option value="${name}">${name}</option>`).join('');
+  let opts = state.fleet.map(name => `<option value="${name}">${name}</option>`).join('');
   $('app').innerHTML = `
     <div class="card" style="margin-top:20px;">
       <h2>Driver Login</h2>
@@ -469,18 +468,32 @@ window.submitEpod = async () => {
 // ── Init ──────────────────────────────────────────────────────────
 const params = new URLSearchParams(window.location.search);
 const autoJobId = params.get('job_id');
-if(autoJobId) {
-  $('app').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading trip...</div>';
-  if(!$('job-code-input')) {
-    const hidden = document.createElement('input');
-    hidden.type = 'hidden'; hidden.id = 'job-code-input';
-    document.body.appendChild(hidden);
+
+async function initDriverApp() {
+  if(autoJobId) {
+    $('app').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading trip...</div>';
+    if(!$('job-code-input')) {
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden'; hidden.id = 'job-code-input';
+      document.body.appendChild(hidden);
+    }
+    $('job-code-input').value = autoJobId;
+    window.searchJob();
+  } else {
+    $('app').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading Driver Portal...</div>';
+    try {
+      const rows = await sb.get(\`jobs?driver_name=not.is.null&select=driver_name\`);
+      const uniqueDrivers = [...new Set((rows||[]).map(r => r.driver_name))].sort();
+      state.fleet = uniqueDrivers;
+    } catch(e) {
+      console.error(e);
+      state.fleet = [];
+    }
+    renderLogin();
   }
-  $('job-code-input').value = autoJobId;
-  window.searchJob();
-} else {
-  renderLogin();
 }
+
+initDriverApp();
 </script>
 </body>
 </html>
