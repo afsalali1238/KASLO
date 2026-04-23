@@ -148,11 +148,12 @@ document.addEventListener('DOMContentLoaded', async () => {
               site_address:   form.querySelector('[name="site_address"]')?.value?.trim() || null,
             };
           } else {
+            const cargo = form.querySelector('[name="cargo_type"]')?.value;
+            const weightVal = form.querySelector('[name="weight"]')?.value;
             extraData = {
               origin:      form.querySelector('[name="origin"]')?.value,
               destination: form.querySelector('[name="destination"]')?.value,
-              cargo_type:  form.querySelector('[name="cargo_type"]')?.value,
-              weight:      form.querySelector('[name="weight"]')?.value || null,
+              cargo_type:  weightVal ? `${cargo} (Weight: ${weightVal})` : cargo,
               pickup_date: form.querySelector('[name="pickup_date"]')?.value || null,
             };
           }
