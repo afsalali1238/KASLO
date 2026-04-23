@@ -193,7 +193,69 @@ VALUES (
 ) ON CONFLICT (id) DO UPDATE SET status = 'invoiced', vendor_price = 650, vendor_id_assigned = '22222222-2222-2222-2222-222222222222', quoted_price = 1000, kasper_margin = 350;
 
 -- ─────────────────────────────────────────────────────────────
--- 8. RFQ for vendor portal testing (sent to Al Hamd, not yet quoted)
+-- 8. Additional Completed Jobs (to seed Vendor Fleet drop-downs)
+-- ─────────────────────────────────────────────────────────────
+INSERT INTO jobs (id, job_code, status, service_type, client_name, client_email, client_phone,
+  origin, destination, cargo_type, pickup_date,
+  vendor_id_assigned, vendor_price, driver_name, driver_phone, vehicle_plate)
+VALUES 
+(
+  'dddddddd-1111-2222-3333-444444444444',
+  'KSP-TEST-FLEET-01',
+  'delivered',
+  'logistics',
+  'Fleet Seed Client 1',
+  'seed1@client.com',
+  '+971550000001',
+  'Jebel Ali Freezone',
+  'Dubai Marina',
+  'Pallet Freight',
+  '2026-04-10',
+  '33333333-3333-3333-3333-333333333333', -- Sharjah Crane Services
+  850,
+  'Omar Farooq',
+  '+971501234567',
+  'SHJ C 7788'
+),
+(
+  'eeeeeeee-1111-2222-3333-444444444444',
+  'KSP-TEST-FLEET-02',
+  'delivered',
+  'equipment',
+  'Fleet Seed Client 2',
+  'seed2@client.com',
+  '+971550000002',
+  'Al Quoz Ind 3',
+  'Business Bay',
+  'Forklift 3-Ton',
+  '2026-04-15',
+  '33333333-3333-3333-3333-333333333333', -- Sharjah Crane Services
+  1200,
+  'Ali Reza',
+  '+971559876543',
+  'SHJ D 9900'
+),
+(
+  'ffffffff-1111-2222-3333-444444444444',
+  'KSP-TEST-FLEET-03',
+  'delivered',
+  'logistics',
+  'Fleet Seed Client 3',
+  'seed3@client.com',
+  '+971550000003',
+  'Sharjah Ind 5',
+  'Ras Al Khaimah',
+  'Building Materials',
+  '2026-04-18',
+  '22222222-2222-2222-2222-222222222222', -- Al Hamd
+  700,
+  'Tariq Mahmoud',
+  '+971508889999',
+  'DXB K 1122'
+) ON CONFLICT (id) DO UPDATE SET driver_name = EXCLUDED.driver_name, vehicle_plate = EXCLUDED.vehicle_plate, driver_phone = EXCLUDED.driver_phone;
+
+-- ─────────────────────────────────────────────────────────────
+-- 9. RFQ for vendor portal testing (sent to Al Hamd, not yet quoted)
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO vendor_rfqs (id, job_id, vendor_id, status)
 VALUES
@@ -212,5 +274,6 @@ ON CONFLICT (job_id, vendor_id) DO UPDATE SET status = 'sent', vendor_price = NU
 -- 4. KSP-TEST-VENDORPO-01    → Ops sends vendor PO (profitability card visible)
 -- 5. KSP-TEST-DRIVERASSIGN-01→ Vendor assigns driver in vendor.html
 -- 6. KSP-TEST-PAYMENT-01     → Vendor sees completed job in Payments tab
--- 7. Al Hamd has 1 pending RFQ → visible in vendor portal RFQs tab
+-- 7. KSP-TEST-FLEET-01/02/03 → Historical jobs seeding Vendor Fleet dropdowns
+-- 8. Al Hamd has 1 pending RFQ → visible in vendor portal RFQs tab
 -- ═══════════════════════════════════════════════════════════════
