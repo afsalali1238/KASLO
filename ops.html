@@ -1071,26 +1071,31 @@ function renderOpsJobDetail(){
         const top=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}});
         top.append(txt('div',v?v.company_name:rfq.vendor_id.slice(0,8)),badge(rfq.status));
         row.append(top);
-        if(rfq.status==='quoted'){
+        if(rfq.vendor_price){
           const priceRow=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'8px'}});
-          const pv=txt('div',`AED ${Number(rfq.vendor_price).toLocaleString()}`);pv.style.cssText=`font-size:18px;font-weight:800;color:${C.teal}`;
-          const selBtn=btn('✓ Select','#10B981',async()=>{
-            selBtn.disabled=true;selBtn.textContent='Setting…';
-            // Accept this RFQ, reject others
-            await sb.patch(`vendor_rfqs?id=eq.${rfq.id}`,{status:'accepted',accepted_at:new Date().toISOString()});
-            for(const other of state.rfqs.filter(r=>r.id!==rfq.id)){
-              await sb.patch(`vendor_rfqs?id=eq.${other.id}`,{status:'rejected'});
-            }
-            // Set vendor price on the job
-            await sb.patch(`jobs?job_code=eq.${encodeURIComponent(j.job_code)}`,{
-              vendor_price:rfq.vendor_price,
-              vendor_id_assigned:rfq.vendor_id
+          const pv=txt('div',`AED ${Number(rfq.vendor_price).toLocaleString()}`);
+          pv.style.cssText=`font-size:18px;font-weight:800;color:${rfq.status==='accepted'?C.teal:rfq.status==='rejected'?C.muted:C.teal};${rfq.status==='rejected'?'text-decoration:line-through':''}`;
+          priceRow.append(pv);
+
+          if(rfq.status==='quoted'){
+            const selBtn=btn('✓ Select','#10B981',async()=>{
+              selBtn.disabled=true;selBtn.textContent='Setting…';
+              // Accept this RFQ, reject others
+              await sb.patch(`vendor_rfqs?id=eq.${rfq.id}`,{status:'accepted',accepted_at:new Date().toISOString()});
+              for(const other of state.rfqs.filter(r=>r.id!==rfq.id)){
+                await sb.patch(`vendor_rfqs?id=eq.${other.id}`,{status:'rejected'});
+              }
+              // Set vendor price on the job
+              await sb.patch(`jobs?job_code=eq.${encodeURIComponent(j.job_code)}`,{
+                vendor_price:rfq.vendor_price,
+                vendor_id_assigned:rfq.vendor_id
+              });
+              state.rfqs=[];
+              await loadJobs();
             });
-            state.rfqs=[];
-            await loadJobs();
-          });
-          selBtn.style.cssText+='width:auto;padding:8px 18px;font-size:13px';
-          priceRow.append(pv,selBtn);
+            selBtn.style.cssText+='width:auto;padding:8px 18px;font-size:13px';
+            priceRow.append(selBtn);
+          }
           row.append(priceRow);
           if(rfq.vendor_notes){const nt=txt('div',rfq.vendor_notes);nt.style.cssText=`font-size:12px;color:${C.muted};margin-top:6px;font-style:italic`;row.append(nt);}
         }
