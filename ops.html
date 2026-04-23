@@ -1317,7 +1317,7 @@ function renderOpsJobDetail(){
   }
 
   // Generate invoice after ePOD
-  if(j.status==='epod_pending'&&j.epod_client_done){
+  if(j.status==='epod_done' || (j.status==='epod_pending'&&j.epod_client_done)){
     const ib=btn('Generate & Send Invoice',C.teal,async()=>{
       ib.disabled=true;ib.textContent='Updating…';
       await updateJobStatus(j.job_code,{status:'invoiced'});
