@@ -93,7 +93,7 @@ const card=(style='')=>{const d=el('div',{class:'card'}); if(style)d.style.cssTe
 async function loadRFQs(){
   if(!state.vendorId) return;
   try{
-    const rows=await sb.get(`vendor_rfqs?vendor_id=eq.${state.vendorId}&status=eq.sent&order=created_at.desc`);
+    const rows=await sb.get(`vendor_rfqs?vendor_id=eq.${state.vendorId}&status=in.(sent,quoted,accepted,rejected)&order=created_at.desc`);
     // For each RFQ, we need the job details — fetch via job_id
     const rfqs=Array.isArray(rows)?rows:[];
     // Batch-load job details
@@ -118,7 +118,7 @@ async function loadActiveJobs(){
 async function loadCompletedJobs(){
   if(!state.vendorId) return;
   try{
-    const rows=await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=in.(invoiced,paid)&order=created_at.desc`);
+    const rows=await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=in.(epod_pending,epod_done,invoiced,paid)&order=created_at.desc`);
     state.jobs=Array.isArray(rows)?rows:[];
   }catch(e){console.error('loadJobs',e); state.jobs=[];}
 }
@@ -354,7 +354,7 @@ function renderRFQs(){
     // Header row
     const top=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}});
     const code=txt('span',j.job_code||'—','mono');code.style.cssText=`font-size:13px;font-weight:600;color:${C.text}`;
-    top.append(code,badge('sent'));
+    top.append(code,badge(rfq.status));
     jc.append(top);
 
     // Route
@@ -374,28 +374,53 @@ function renderRFQs(){
     });
     jc.append(details);
 
-    // Quote form (inline)
-    const quoteForm=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px'}});
-    const priceInput=el('input',{type:'number',placeholder:'Your price (AED)',style:{marginBottom:'8px'}});
-    const notesInput=el('input',{type:'text',placeholder:'Notes (optional)',style:{marginBottom:'10px'}});
-    
-    const submitBtn=btn('💰 Submit Quote',C.gold,async()=>{
-      const price=parseFloat(priceInput.value);
-      if(!price||price<=0){priceInput.style.borderColor=C.red;return;}
-      submitBtn.disabled=true;submitBtn.textContent='Submitting…';
-      await sb.patch(`vendor_rfqs?id=eq.${rfq.id}`,{
-        status:'quoted',
-        vendor_price:price,
-        vendor_notes:notesInput.value||null,
-        quoted_at:new Date().toISOString()
+    if (rfq.status === 'sent') {
+      // Quote form (inline)
+      const quoteForm=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px'}});
+      const priceInput=el('input',{type:'number',placeholder:'Your price (AED)',style:{marginBottom:'8px'}});
+      const notesInput=el('input',{type:'text',placeholder:'Notes (optional)',style:{marginBottom:'10px'}});
+      
+      const submitBtn=btn('💰 Submit Quote',C.gold,async()=>{
+        const price=parseFloat(priceInput.value);
+        if(!price||price<=0){priceInput.style.borderColor=C.red;return;}
+        submitBtn.disabled=true;submitBtn.textContent='Submitting…';
+        await sb.patch(`vendor_rfqs?id=eq.${rfq.id}`,{
+          status:'quoted',
+          vendor_price:price,
+          vendor_notes:notesInput.value||null,
+          quoted_at:new Date().toISOString()
+        });
+        // Reload
+        await loadRFQs();
+        render();
       });
-      // Reload
-      await loadRFQs();
-      render();
-    });
+      
+      quoteForm.append(priceInput,notesInput,submitBtn);
+      jc.append(quoteForm);
+    } else {
+      // Show submitted quote
+      const stat=el('div',{style:{borderTop:`1px solid ${C.border}`,paddingTop:'12px',marginTop:'4px'}});
+      const sT=txt('div','YOUR SUBMITTED QUOTE','lbl');
+      const sV=txt('div',`AED ${Number(rfq.vendor_price).toLocaleString()}`);
+      sV.style.cssText=`font-size:15px;font-weight:700;color:${rfq.status==='accepted'?C.green:rfq.status==='rejected'?C.muted:C.gold}`;
+      stat.append(sT,sV);
+      if(rfq.status==='rejected') sV.style.textDecoration='line-through';
+      if(rfq.status==='accepted') {
+        const accMsg=txt('div','🎉 Kasper has accepted your quote! Check Active Jobs to assign a driver.');
+        accMsg.style.cssText=`font-size:12px;color:${C.green};margin-top:6px`;
+        stat.append(accMsg);
+      } else if (rfq.status==='rejected') {
+        const rejMsg=txt('div','Unfortunately, Kasper has proceeded with another vendor.');
+        rejMsg.style.cssText=`font-size:12px;color:${C.muted};margin-top:6px`;
+        stat.append(rejMsg);
+      } else {
+        const pendMsg=txt('div','⏳ Pending Kasper confirmation.');
+        pendMsg.style.cssText=`font-size:12px;color:${C.muted};margin-top:6px`;
+        stat.append(pendMsg);
+      }
+      jc.append(stat);
+    }
     
-    quoteForm.append(priceInput,notesInput,submitBtn);
-    jc.append(quoteForm);
     d.append(jc);
   });
 

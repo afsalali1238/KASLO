@@ -467,12 +467,12 @@ window.submitEpod = async () => {
   
   try {
     await sb.patch(`jobs?job_code=eq.${encodeURIComponent(currentJob.job_code)}`, {
-      status: 'epod_done',
-      epod_client_done: true,
+      status: 'epod_pending',
+      epod_driver_done: true,
       epod_timestamp: new Date().toISOString(),
       epod_notes: notesString
     });
-    currentJob.status = 'epod_done';
+    currentJob.status = 'epod_pending';
     renderTrip();
     showToast('✅ ePOD Successfully Uploaded');
   } catch(e) {

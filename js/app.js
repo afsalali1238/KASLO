@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // ePOD module
-      if (job.status === 'delivered' && !job.epod_client_done) {
+      if (job.status === 'epod_pending' && job.epod_driver_done && !job.epod_client_done) {
         const epodEl = document.getElementById('epod-module');
         if (epodEl) {
           epodEl.style.display = 'block';

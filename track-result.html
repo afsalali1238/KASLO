@@ -211,10 +211,21 @@
         map.panTo([lat,lng],{animate:true,duration:.5});
         const coordsEl = document.getElementById('gps-coords');
         const timeEl = document.getElementById('gps-time');
-        if(coordsEl) coordsEl.textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        if(timeEl && updatedAt){
+        const titleEl = document.getElementById('gps-title');
+        
+        let stale = false;
+        if(updatedAt){
           const ago = Math.round((Date.now()-new Date(updatedAt).getTime())/1000);
-          timeEl.textContent = ago<60 ? `${ago}s ago` : `${Math.round(ago/60)}m ago`;
+          stale = ago > 300; // 5 minutes
+          if(timeEl) timeEl.textContent = ago<60 ? `${ago}s ago` : `${Math.round(ago/60)}m ago`;
+        }
+        
+        if(stale){
+          if(titleEl) titleEl.innerHTML='🔴 Last Known GPS Location <span style="font-size:12px;color:var(--alert-amber);font-weight:normal;margin-left:8px;background:rgba(255,107,0,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(255,107,0,0.3)">GPS Offline/Stale</span>';
+          if(coordsEl) coordsEl.textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (Signal Lost)`;
+        } else {
+          if(titleEl) titleEl.innerHTML='🔴 Live GPS Tracking <span style="font-size:12px;color:#1D9E75;font-weight:normal;margin-left:8px;">Live</span>';
+          if(coordsEl) coordsEl.textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         }
       }
 
@@ -237,7 +248,6 @@
           // If we have coordinates, hide static map and show live map
           document.getElementById('static-map').style.display='none';
           document.getElementById('live-map').style.display='block';
-          document.getElementById('gps-title').innerHTML='🔴 Live GPS Tracking <span style="font-size:12px;color:#1D9E75;font-weight:normal;margin-left:8px;">Live</span>';
 
           if(!initialized){
             initMap(job.driver_lat, job.driver_lng);

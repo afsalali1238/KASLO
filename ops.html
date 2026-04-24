@@ -1286,14 +1286,14 @@ function renderOpsJobDetail(){
     notifyCard.append(nInfo);
 
     const shareBtn=btn('📲 Share Tracking via WhatsApp',C.teal,()=>{
-      const link = `https://kaslo-liard.vercel.app/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
+      const link = `${window.location.origin}/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
       const msg = `Hello ${j.client_name||'Client'},\n\nYour driver for booking ${j.job_code} has been assigned! You can track your shipment live here:\n${link}\n\nThank you for using Kasper.`;
       const waUrl = `https://wa.me/${(j.client_phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
       window.open(waUrl,'_blank');
     });
     
     const copyBtn=outlineBtn('Copy Tracking Link',C.teal,()=>{
-      const link = `https://kaslo-liard.vercel.app/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
+      const link = `${window.location.origin}/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
       navigator.clipboard.writeText(link);
       copyBtn.textContent='✓ Copied!';
       setTimeout(()=>copyBtn.textContent='Copy Tracking Link', 2000);
@@ -1321,10 +1321,19 @@ function renderOpsJobDetail(){
 
   // Generate invoice after ePOD
   if(j.status==='epod_done' || (j.status==='epod_pending'&&j.epod_client_done)){
-    const ib=btn('Generate & Send Invoice',C.teal,async()=>{
+    const ib=btn('✅ Mark as Invoiced',C.teal,async()=>{
       ib.disabled=true;ib.textContent='Updating…';
       await updateJobStatus(j.job_code,{status:'invoiced'});
     });acts.append(ib);
+    // WhatsApp invoice notification
+    const waInv=outlineBtn('📲 Send Invoice via WhatsApp',C.teal,()=>{
+      const amt = j.quoted_price ? `AED ${Number(j.quoted_price).toLocaleString()}` : 'as quoted';
+      const msg = `Hello ${j.client_name||'Client'},\n\nInvoice for booking ${j.job_code}:\nAmount: ${amt}\n\nPlease arrange payment at your earliest convenience.\n\nThank you — Kasper Logistics`;
+      const waUrl = `https://wa.me/${(j.client_phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl,'_blank');
+    });
+    waInv.style.marginTop='8px';
+    acts.append(waInv);
   }
 
   d.append(acts);
@@ -1333,7 +1342,7 @@ function renderOpsJobDetail(){
   if(['assigned','in_transit','delivered','epod_pending'].includes(j.status)) {
     const dsep=el('div');dsep.style.cssText=`height:1px;background:${C.border};margin:20px 0 14px`;
     const dLink=outlineBtn('🚚 Open Driver View (New Tab)',C.teal,()=>{
-      window.open(`driver.html?job_id=${encodeURIComponent(j.job_code)}`,'_blank');
+      window.open(`driver.html?job_code=${encodeURIComponent(j.job_code)}`,'_blank');
     });
     dLink.style.cssText+=';font-size:13px;padding:12px 20px;width:100%;text-align:center;opacity:.8';
     d.append(dsep, dLink);
