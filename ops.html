@@ -786,7 +786,7 @@ function renderOpsDashboard(){
   // Smart filters: group by who needs to act next
   const filters = [
     { key:'action',  label:'🔴 My Action',    desc:'Needs ops action',
-      match: j => ['enquiry','po_pending','confirmed'].includes(j.status) 
+      match: j => ['enquiry','po_pending','confirmed','assigned','epod_done'].includes(j.status) 
         || (j.status==='rfq_sent' && j.vendor_price) },
     { key:'vendor',  label:'🟡 Vendor',       desc:'Waiting on vendor',
       match: j => (j.status==='rfq_sent' && !j.vendor_price)
@@ -844,7 +844,9 @@ function renderOpsDashboard(){
       'po_pending': '→ Verify & confirm PO',
       'confirmed': '→ Send Vendor PO',
       'vendor_po_sent': '⏳ Vendor assigning driver',
+      'assigned': '→ Send tracking link to client',
       'epod_pending': '⏳ Waiting ePOD sign-off',
+      'epod_done': '→ Generate & send invoice',
     };
     const hint=actionHints[j.status];
     if(hint && state.opsFilter!=='all'){
@@ -1047,6 +1049,7 @@ function renderOpsJobDetail(){
 
     // Load RFQs for this job
     if(state.loadingRfqsForJob !== j.id){
+      state.loadingRfqsForJob = j.id;
       state.rfqs = []; // clear old rfqs
       loadRFQsForJob(j.id).then(()=>render());
       const loadMsg=txt('div','Loading vendor responses…','loading-pulse');
@@ -1326,13 +1329,14 @@ function renderOpsJobDetail(){
 
   d.append(acts);
 
-  // ── DRIVER PORTAL ATTACHMENT ─────────────────────────────────────
+  // ── DRIVER PORTAL LINK ──────────────────────────────────────────
   if(['assigned','in_transit','delivered','epod_pending'].includes(j.status)) {
     const dsep=el('div');dsep.style.cssText=`height:1px;background:${C.border};margin:20px 0 14px`;
-    const dipl=txt('div','Driver Interface Simulation'); 
-    dipl.style.cssText=`font-size:11px;color:${C.muted};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;text-align:center;`;
-    const difr=el('iframe',{src:`driver.html?job_id=${encodeURIComponent(j.job_code)}`, style:{width:'100%', height:'520px', border:'1px solid '+C.border, borderRadius:'12px', background:C.surf2, display:'block'}});
-    d.append(dsep, dipl, difr);
+    const dLink=outlineBtn('🚚 Open Driver View (New Tab)',C.teal,()=>{
+      window.open(`driver.html?job_id=${encodeURIComponent(j.job_code)}`,'_blank');
+    });
+    dLink.style.cssText+=';font-size:13px;padding:12px 20px;width:100%;text-align:center;opacity:.8';
+    d.append(dsep, dLink);
   }
 
   // ── FORCE NEXT STEP (Ops) ─────────────────────────────────────

@@ -133,6 +133,12 @@ async function loadFleetHistory(){
 
 async function loadTab(){
   state.loading=true; render();
+  // Always fetch PO count for badge (runs in background)
+  if(state.vendorId){
+    sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=eq.vendor_po_sent&select=id`).then(r=>{
+      state.newPOCount = Array.isArray(r) ? r.length : 0;
+    }).catch(()=>{});
+  }
   if(state.tab==='rfqs') await loadRFQs();
   else if(state.tab==='jobs') await loadActiveJobs();
   else if(state.tab==='payments') await loadCompletedJobs();
@@ -227,10 +233,18 @@ function renderBottomNav(){
   const nav=el('div',{class:'bottom-nav'});
   tabs.forEach(t=>{
     const b=el('button',{class:'nav-btn',onclick:()=>{state.tab=t.key;state.sub=null;loadTab();}});
+    b.style.position='relative';
     const i=txt('span',t.icon,'nav-icon');
     const l=txt('span',t.label,'nav-label');
     l.style.color=state.tab===t.key?C.gold:C.muted;
-    b.append(i,l);nav.append(b);
+    b.append(i,l);
+    // Red dot badge for new POs on Active Jobs tab
+    if(t.key==='jobs' && state.newPOCount > 0){
+      const dot=el('span');
+      dot.style.cssText=`position:absolute;top:2px;right:calc(50% - 18px);width:8px;height:8px;background:${C.red};border-radius:50%;box-shadow:0 0 6px ${C.red}`;
+      b.append(dot);
+    }
+    nav.append(b);
   });
   return nav;
 }
@@ -404,6 +418,16 @@ function renderActiveJobs(){
   const hdr=txt('div',`${jobs.length} Active Job${jobs.length!==1?'s':''}`);
   hdr.style.cssText=`font-size:15px;font-weight:700;color:${C.text};margin-bottom:16px`;
   d.append(hdr);
+
+  // PO Alert Banner
+  const newPOs = jobs.filter(j=>j.status==='vendor_po_sent');
+  if(newPOs.length > 0){
+    const banner=el('div',{class:'card',style:{borderColor:C.gold,background:C.gold+'11',marginBottom:'12px'}});
+    const bText=txt('div',`🔔 You have ${newPOs.length} new PO${newPOs.length>1?'s':''} to confirm — assign a driver to get started`);
+    bText.style.cssText=`font-size:13px;font-weight:600;color:${C.gold};text-align:center`;
+    banner.append(bText);
+    d.append(banner);
+  }
 
   if(!jobs.length){
     const nj=el('div',{class:'card',style:{textAlign:'center',padding:'40px 20px'}});
