@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const statusOrder = ['enquiry','quoted','confirmed','assigned','in_transit','delivered','epod_pending','invoiced','paid'];
       const stepIds     = ['ts-enq','ts-quo','ts-con','ts-ass','ts-int','ts-del','ts-epo','ts-inv','ts-pai'];
       // Map internal states to client-facing equivalents
-      const clientStatus = {'rfq_sent':'enquiry', 'po_pending':'quoted', 'vendor_po_sent':'confirmed', 'epod_done':'epod_pending'}[job.status] || job.status;
+      const clientStatus = {'rfq_sent':'enquiry', 'po_pending':'confirmed', 'vendor_po_sent':'confirmed', 'epod_done':'epod_pending'}[job.status] || job.status;
       const curIdx      = statusOrder.indexOf(clientStatus);
 
       stepIds.forEach((id, i) => {

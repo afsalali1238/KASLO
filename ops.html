@@ -1403,9 +1403,17 @@ function openAssignModal(job) {
     info.append(name, typ);
     row.append(info);
 
-    // Fake availability blocks
+    // Real availability check against state.jobs
     for(let i=0; i<7; i++){
-      const isAvail = (v.id * i + new Date().getDate()) % 5 !== 0; 
+      const d=new Date(now); d.setDate(now.getDate()+i);
+      const dateStr = d.toISOString().split('T')[0];
+      const hasJob = state.jobs.some(j => {
+        if(j.driver_name !== v.name) return false;
+        if(!j.pickup_date && !j.start_date) return false;
+        const jDate = (j.pickup_date || j.start_date).split('T')[0];
+        return jDate === dateStr && !['delivered','epod_pending','epod_done','invoiced','paid'].includes(j.status);
+      });
+      const isAvail = !hasJob;
       const cell = el('div', {style:{flex:1, padding:'2px'}});
       const box = el('div', {style:{width:'100%', height:'20px', borderRadius:'4px', background:isAvail?C.tealDim:C.red}});
       if(isAvail) box.style.border=`1px solid ${C.teal}55`;
