@@ -98,14 +98,18 @@ function renderLogin() {
     <div class="card" style="margin-top:20px;">
       <h2>Driver Login</h2>
       <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px;">
-        Select your name to access your assigned trips.
+        Select your name and enter your 4-digit PIN.
       </p>
       <div class="input-group">
         <label>Driver Identity</label>
-        <select id="driver-select" class="input-field" style="appearance:none;">
+        <select id="driver-select" class="input-field" style="appearance:none;margin-bottom:15px;">
           <option value="" disabled selected>Select Driver Name...</option>
           ${opts}
         </select>
+      </div>
+      <div class="input-group" style="margin-bottom:20px;">
+        <label>PIN Code</label>
+        <input type="password" id="driver-pin" class="input-field" placeholder="****" maxlength="4" style="letter-spacing:4px;font-size:1.2rem;text-align:center;">
       </div>
       <button class="btn btn-primary" onclick="window.driverLogin()" id="login-btn">Log In</button>
     </div>
@@ -114,9 +118,33 @@ function renderLogin() {
 
 window.driverLogin = async () => {
   const name = $('driver-select').value;
+  const pin = $('driver-pin').value;
   if (!name) return showToast('⚠️ Please select a driver');
+  if (!pin || pin.length < 4) return showToast('⚠️ Please enter your 4-digit PIN');
   
-  $('login-btn').disabled = true; $('login-btn').textContent = 'Loading...';
+  $('login-btn').disabled = true; $('login-btn').textContent = 'Verifying...';
+  
+  // Verify PIN against drivers table (fallback to 1234 if table missing)
+  try {
+    const rows = await sb.get(`drivers?name=eq.${encodeURIComponent(name)}&select=pin`);
+    if (rows && rows.length > 0 && rows[0].pin !== pin) {
+      showToast('⚠️ Incorrect PIN');
+      $('login-btn').disabled = false; $('login-btn').textContent = 'Log In';
+      return;
+    } else if ((!rows || rows.length === 0) && pin !== '1234') {
+      showToast('⚠️ Incorrect PIN');
+      $('login-btn').disabled = false; $('login-btn').textContent = 'Log In';
+      return;
+    }
+  } catch(e) {
+    // If drivers table doesn't exist yet, fallback to 1234
+    if (pin !== '1234') {
+      showToast('⚠️ Incorrect PIN');
+      $('login-btn').disabled = false; $('login-btn').textContent = 'Log In';
+      return;
+    }
+  }
+
   state.driverName = name;
   await loadDriverJobs();
 };

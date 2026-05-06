@@ -200,14 +200,38 @@ function checkSchedule(){
   if(!inWindow()&&state.tracking)stopTracking();
 }
 
-// ── Data loading ──────────────────────────────────────────────────
+let prevJobsMap = new Map();
 async function loadJobs(){
   state.loading=true; render();
   try{
     let endpoint = 'jobs?order=created_at.desc';
     if(state.vendor_id) endpoint += `&vendor_id=eq.${state.vendor_id}`;
     const rows=await sb.get(endpoint);
-    state.jobs=Array.isArray(rows)?rows:[];
+    const newJobs=Array.isArray(rows)?rows:[];
+    
+    if (state.jobs.length > 0 && state.view === 'ops') {
+      newJobs.forEach(nj => {
+        const pj = prevJobsMap.get(nj.job_code);
+        if (pj && pj.status !== nj.status && ['po_pending', 'confirmed'].includes(nj.status) && !['po_pending', 'confirmed'].includes(pj.status)) {
+          showToast(`🎉 Client Approved Quote for ${nj.job_code}`);
+        }
+      });
+    }
+    
+    // Sort by urgency: stale first, then My Action statuses, then by pickup_date
+    const ACTION_STATUSES = ['enquiry','po_pending','confirmed','assigned','epod_done','delivered'];
+    newJobs.sort((a, b) => {
+      const aStale = a.last_status_changed_at && (Date.now() - new Date(a.last_status_changed_at).getTime() > 4*3600*1000) ? 0 : 1;
+      const bStale = b.last_status_changed_at && (Date.now() - new Date(b.last_status_changed_at).getTime() > 4*3600*1000) ? 0 : 1;
+      if (aStale !== bStale) return aStale - bStale;
+      const aAction = ACTION_STATUSES.includes(a.status) ? 0 : 1;
+      const bAction = ACTION_STATUSES.includes(b.status) ? 0 : 1;
+      if (aAction !== bAction) return aAction - bAction;
+      return new Date(a.pickup_date || a.created_at) - new Date(b.pickup_date || b.created_at);
+    });
+    state.jobs=newJobs;
+    prevJobsMap.clear();
+    newJobs.forEach(j => prevJobsMap.set(j.job_code, j));
   }catch(e){console.error('loadJobs',e);}
   state.loading=false; render();
 }
@@ -561,8 +585,21 @@ function renderDriverHome(){
   (myJobs.length?myJobs:[]).forEach((j,i,arr)=>{
     const jr=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer',borderBottom:i<arr.length-1?`1px solid ${C.border}`:'none'}});
     jr.onclick=()=>{state.selId=j.job_code;state.sub='job-detail';render();};
-    const jm=el('div');jm.append(txt('div',j.job_code,'mono'),txt('div',j.client_name||j.company_name||''));
-    jr.append(jm,badge(j.status));jc.append(jr);
+    const jm=el('div');
+    jm.append(txt('div',j.job_code,'mono'),txt('div',j.client_name||j.company_name||''));
+    const badges=el('div',{style:{display:'flex',gap:'8px',alignItems:'center'}});
+    
+    // SLA warning (Stale for 4+ hours in quoted/confirmed)
+    if(['quoted','confirmed','po_pending'].includes(j.status) && j.last_status_changed_at) {
+      const elapsed = Date.now() - new Date(j.last_status_changed_at).getTime();
+      if(elapsed > 4 * 3600 * 1000) {
+        const sla=txt('span','🔴 Stale');
+        sla.style.cssText=`font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,107,0,0.1);color:${C.amber};border:1px solid rgba(255,107,0,0.3)`;
+        badges.append(sla);
+      }
+    }
+    badges.append(badge(j.status));
+    jr.append(jm,badges);jc.append(jr);
   });
   d.append(jc);return d;
 }
@@ -786,7 +823,7 @@ function renderOpsDashboard(){
   // Smart filters: group by who needs to act next
   const filters = [
     { key:'action',  label:'🔴 My Action',    desc:'Needs ops action',
-      match: j => ['enquiry','po_pending','confirmed','assigned','epod_done'].includes(j.status) 
+      match: j => ['enquiry','po_pending','confirmed','assigned','epod_done','delivered'].includes(j.status) 
         || (j.status==='rfq_sent' && j.vendor_price) },
     { key:'vendor',  label:'🟡 Vendor',       desc:'Waiting on vendor',
       match: j => (j.status==='rfq_sent' && !j.vendor_price)
@@ -855,7 +892,20 @@ function renderOpsDashboard(){
       m.append(hintEl);
     }
     
-    r.append(m,badge(j.status));lc.append(r);
+    const badges=el('div',{style:{display:'flex',gap:'8px',alignItems:'center'}});
+    
+    // SLA warning (Stale for 4+ hours in quoted/confirmed)
+    if(['quoted','confirmed','po_pending'].includes(j.status) && j.last_status_changed_at) {
+      const elapsed = Date.now() - new Date(j.last_status_changed_at).getTime();
+      if(elapsed > 4 * 3600 * 1000) {
+        const sla=txt('span','🔴 Stale');
+        sla.style.cssText=`font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,107,0,0.1);color:${C.amber};border:1px solid rgba(255,107,0,0.3)`;
+        badges.append(sla);
+      }
+    }
+    badges.append(badge(j.status));
+    
+    r.append(m,badges);lc.append(r);
   });
   if(!filteredJobs.length){const nj=txt('div',state.opsFilter==='all'?'No jobs yet.':'Nothing needs attention here. ✓');nj.style.cssText=`color:${C.muted};font-size:14px;text-align:center;padding:20px`;lc.append(nj);}
   d.append(lc);return d;
@@ -1131,6 +1181,12 @@ function renderOpsJobDetail(){
         const sendClientBtn=btn('📩 Send Quote to Client',C.teal,async()=>{
           const price=parseFloat(inpClientPrice.value);
           if(!price||price<=0){inpClientPrice.style.borderColor=C.red;return;}
+          if(price <= Number(j.vendor_price)) {
+            marginPreview.textContent='⚠️ Vendor price exceeds client quote. Adjust price.';
+            marginPreview.style.color=C.red;
+            inpClientPrice.style.borderColor=C.red;
+            return;
+          }
           const margin=price-Number(j.vendor_price);
           sendClientBtn.disabled=true;sendClientBtn.textContent='Sending…';
           await sb.patch(`jobs?job_code=eq.${encodeURIComponent(j.job_code)}`,{
@@ -1341,11 +1397,37 @@ function renderOpsJobDetail(){
   // ── DRIVER PORTAL LINK ──────────────────────────────────────────
   if(['assigned','in_transit','delivered','epod_pending'].includes(j.status)) {
     const dsep=el('div');dsep.style.cssText=`height:1px;background:${C.border};margin:20px 0 14px`;
+    
+    const linksDiv = el('div', {style:{display:'flex', flexDirection:'column', gap:'8px'}});
+    
+    if (j.status === 'assigned') {
+      // Notify Client via WhatsApp
+      const waDriverBtn=outlineBtn('📲 Notify Client (WhatsApp)',C.teal,()=>{
+        const msg = `Hello ${j.client_name||'Client'},\n\nYour driver ${j.driver_name||'our team'} in vehicle ${j.vehicle_plate||'assigned vehicle'} is on the way for booking ${j.job_code}.\n\nTrack your order here: ${SITE_URL}/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
+        const waUrl = `https://wa.me/${(j.client_phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl,'_blank');
+      });
+      waDriverBtn.style.cssText+=';font-size:13px;padding:12px 20px;width:100%;text-align:center;';
+      linksDiv.append(waDriverBtn);
+    }
+    
+    if (j.status === 'delivered') {
+      const waDeliveredBtn=outlineBtn('📲 Notify Client (Delivery)',C.teal,()=>{
+        const msg = `✅ Your shipment [Job #${j.job_code} — ${j.origin||''} to ${j.destination||''}] has been delivered. View POD: ${SITE_URL}/track-result.html?job_id=${encodeURIComponent(j.job_code)}`;
+        const waUrl = `https://wa.me/${(j.client_phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl,'_blank');
+      });
+      waDeliveredBtn.style.cssText+=';font-size:13px;padding:12px 20px;width:100%;text-align:center;';
+      linksDiv.append(waDeliveredBtn);
+    }
+    
     const dLink=outlineBtn('🚚 Open Driver View (New Tab)',C.teal,()=>{
       window.open(`driver.html?job_code=${encodeURIComponent(j.job_code)}`,'_blank');
     });
     dLink.style.cssText+=';font-size:13px;padding:12px 20px;width:100%;text-align:center;opacity:.8';
-    d.append(dsep, dLink);
+    
+    linksDiv.append(waDriverBtn, dLink);
+    d.append(dsep, linksDiv);
   }
 
   // ── FORCE NEXT STEP (Ops) ─────────────────────────────────────

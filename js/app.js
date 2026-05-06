@@ -422,6 +422,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (dlBtn)  { dlBtn.disabled = false; dlBtn.style.opacity = '1'; dlBtn.textContent = 'Download'; }
       }
 
+      // Fetch and render Job Events Timeline
+      try {
+        const events = await sb.get(`job_events?job_id=eq.${job.id}&order=created_at.desc`);
+        if (events && events.length > 0) {
+          const eventsModule = document.getElementById('events-module');
+          const eventsList = document.getElementById('events-list');
+          if (eventsModule && eventsList) {
+            eventsModule.style.display = 'block';
+            eventsList.innerHTML = '';
+            events.forEach(evt => {
+              const dt = new Date(evt.created_at);
+              const formattedDate = dt.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true});
+              
+              const item = document.createElement('div');
+              item.style.cssText = 'display:flex;gap:12px;align-items:flex-start;';
+              
+              const dotCol = document.createElement('div');
+              dotCol.style.cssText = 'display:flex;flex-direction:column;align-items:center;margin-top:4px;';
+              const dot = document.createElement('div');
+              dot.style.cssText = 'width:10px;height:10px;border-radius:50%;background:var(--accent-teal);box-shadow:0 0 0 3px rgba(16,185,129,0.2);';
+              const line = document.createElement('div');
+              line.style.cssText = 'width:2px;min-height:30px;background:var(--border-color);margin-top:4px;flex-grow:1;';
+              dotCol.append(dot, line);
+              
+              const contentCol = document.createElement('div');
+              contentCol.style.cssText = 'flex:1;padding-bottom:16px;';
+              const STATUS_LABELS = { enquiry: 'Quote requested', vendor_po_sent: 'Vendor confirmed', assigned: 'Driver assigned', in_transit: 'Shipment in transit', delivered: 'Delivered', epod_pending: 'Proof of delivery pending', invoiced: 'Invoice sent' };
+              const title = document.createElement('div');
+              title.style.cssText = 'font-weight:600;color:var(--text-main);font-size:0.95rem;';
+              let displayNote = evt.note || evt.event_type;
+              if (displayNote.startsWith('Status updated to ')) {
+                const rawStatus = displayNote.split('Status updated to ')[1];
+                displayNote = 'Status updated to ' + (STATUS_LABELS[rawStatus] || rawStatus);
+              }
+              title.textContent = displayNote;
+              const ts = document.createElement('div');
+              ts.style.cssText = 'font-size:0.8rem;color:var(--text-muted);margin-top:2px;';
+              ts.textContent = formattedDate;
+              
+              contentCol.append(title, ts);
+              item.append(dotCol, contentCol);
+              eventsList.append(item);
+            });
+            // Hide the last line
+            if (eventsList.lastChild) {
+              eventsList.lastChild.querySelector('div > div:nth-child(2)').style.display = 'none';
+            }
+          }
+        }
+      } catch (evtErr) {
+        console.warn('Could not load events timeline', evtErr);
+      }
+
     } catch (err) {
       console.error(err);
       showToast('Error', 'Could not load job. Check your connection.', 'error');

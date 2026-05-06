@@ -51,3 +51,4 @@ UPDATE jobs SET quoted_price=2200, driver_name='Salim Khoury', vehicle_plate='Sh
   WHERE job_code='AHC-20260420-0005';
 UPDATE jobs SET quoted_price=1500 WHERE job_code='AHC-20260420-0002';
 UPDATE jobs SET quoted_price=2800, approval_timestamp=NOW() WHERE job_code='AHC-20260420-0003';
+npm config set strict-ssl false

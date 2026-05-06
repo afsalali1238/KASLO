@@ -118,7 +118,7 @@ async function loadActiveJobs(){
 async function loadCompletedJobs(){
   if(!state.vendorId) return;
   try{
-    const rows=await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=in.(epod_pending,epod_done,invoiced,paid)&order=created_at.desc`);
+    const rows=await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=in.(epod_pending,epod_submitted,epod_done,invoiced,paid)&order=created_at.desc`);
     state.jobs=Array.isArray(rows)?rows:[];
   }catch(e){console.error('loadJobs',e); state.jobs=[];}
 }
@@ -135,9 +135,10 @@ async function loadTab(){
   state.loading=true; render();
   // Always fetch PO count for badge (runs in background)
   if(state.vendorId){
-    sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=eq.vendor_po_sent&select=id`).then(r=>{
+    try {
+      const r = await sb.get(`jobs?vendor_id_assigned=eq.${state.vendorId}&status=eq.vendor_po_sent&select=id`);
       state.newPOCount = Array.isArray(r) ? r.length : 0;
-    }).catch(()=>{});
+    } catch(e) {}
   }
   if(state.tab==='rfqs') await loadRFQs();
   else if(state.tab==='jobs') await loadActiveJobs();
@@ -582,7 +583,8 @@ function renderPayments(){
     }
 
     const isPaid=j.payment_status==='paid'||j.status==='paid';
-    const payTag=txt('div',isPaid?'✓ Settled':'⏳ Pending Settlement');
+    const isAwaiting = j.status === 'epod_pending' || j.status === 'epod_submitted';
+    const payTag=txt('div',isPaid?'✓ Settled':(isAwaiting?'⏳ Awaiting Invoice':'⏳ Pending Settlement'));
     payTag.style.cssText=`font-size:12px;color:${isPaid?C.green:C.amber};margin-top:6px`;
     jc.append(payTag);
 
