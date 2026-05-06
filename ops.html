@@ -424,7 +424,7 @@ function topbarRight(view){
     rst.textContent='🔄 RST';
     wrap.append(rb,rst);
   }
-  const x=el('button',{class:'switch-btn',onclick:()=>{state.view='login';state.sub=null;state.vendor_id=null;sessionStorage.removeItem('kasper_ops_view');stopTracking();render();}});
+  const x=el('button',{class:'switch-btn',onclick:()=>{sessionStorage.removeItem('kasper_ops_view');stopTracking();window.location.href='login.html';}});
   x.style.color=C.red;x.textContent='⏏️';
   wrap.append(x);
   return wrap;

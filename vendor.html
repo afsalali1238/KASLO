@@ -216,7 +216,7 @@ function renderTopBar(title,onBack){
     rb.textContent='↻';
     wrap.append(rb);
   }
-  const x=el('button',{style:{background:'none',border:'none',color:C.red,cursor:'pointer',fontSize:'14px'},onclick:()=>{state.view='login';state.sub=null;render();}});
+  const x=el('button',{style:{background:'none',border:'none',color:C.red,cursor:'pointer',fontSize:'14px'},onclick:()=>{window.location.href='login.html';}});
   x.textContent='⏏️';
   wrap.append(x);
   bar.append(wrap);
